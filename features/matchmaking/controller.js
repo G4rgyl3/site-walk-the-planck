@@ -37,6 +37,20 @@ import {
 let unsubscribeWallet = null;
 let lastWalletAccount = null;
 
+async function startPlayerSession(walletAddress, sessionToken) {
+    await postJson(ENDPOINTS.startSession, {
+        walletAddress: walletAddress.toLowerCase(),
+        sessionToken
+    });
+}
+
+async function endPlayerSession(walletAddress, sessionToken) {
+    await postJson(ENDPOINTS.endSession, {
+        walletAddress: walletAddress.toLowerCase(),
+        sessionToken
+    });
+}
+
 function getSelectedValues(container, datasetKey, parseValue) {
     if (!container) return [];
 
@@ -129,7 +143,11 @@ async function handleLeaveQueueClick() {
 }
 
 function handleWalletStateChange(walletState) {
-    void syncWalletState(walletState);
+    void syncWalletState(walletState).catch((err) => {
+        console.error(err);
+        setStatus(`Wallet lifecycle sync failed: ${err.message}`);
+        updateWalletUI();
+    });
 }
 
 async function syncWalletState(walletState) {
@@ -144,9 +162,13 @@ async function syncWalletState(walletState) {
 
         stopHeartbeat();
         resetMatchmakingState();
-        resetSessionToken();
+        await endPlayerSession(previousWalletAddress, previousSessionToken);
+        const nextSessionToken = resetSessionToken();
+        await startPlayerSession(walletAddress, nextSessionToken);
         setStatus(`Wallet changed: ${walletAddress}`);
     } else if (walletAddress && walletAddress !== previousWalletAddress) {
+        const nextSessionToken = resetSessionToken();
+        await startPlayerSession(walletAddress, nextSessionToken);
         setStatus(`Wallet changed: ${walletAddress}`);
     } else if (!walletAddress && previousWalletAddress) {
         if (getIsInQueue()) {
@@ -155,6 +177,7 @@ async function syncWalletState(walletState) {
 
         stopHeartbeat();
         resetMatchmakingState();
+        await endPlayerSession(previousWalletAddress, previousSessionToken);
         resetSessionToken();
         setStatus("Wallet disconnected.");
     }

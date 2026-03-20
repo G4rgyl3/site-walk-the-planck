@@ -1,5 +1,7 @@
-const API_BASE = "/fogo/walk-the-planck/api";
+const API_BASE = "/base/walk-the-planck/api";
 const ENDPOINTS = {
+    startSession: "start_session.php",
+    endSession: "end_session.php",
     enterMatchmaking: "enter_matchmaking.php",
     leaveMatchmaking: "leave_matchmaking.php",
     heartbeat: "player_heartbeat.php",
