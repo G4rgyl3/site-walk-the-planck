@@ -19,68 +19,82 @@
 </head>
 <body>
   <div class="app-shell">
-    <!-- LEFT PANEL -->
-    <section class="panel">
-      <div class="panel-inner">
-        <h1 class="panel-title">Player Panel</h1>
+    <div class="left-column">
+      <section class="panel">
+        <div class="panel-inner">
+          <h1 class="panel-title">Player Panel</h1>
+          <section class="section wallet-section">
+            <div class="wallet-card">
+              <div class="wallet-card-header">
+                <div>
+                  <div class="wallet-card-title">Wallet</div>
+                  <div class="wallet-card-subtitle">Connection and session details for this browser session.</div>
+                </div>
+                <button type="button" class="btn btn-connect" id="connectBtn">Connect Wallet</button>
+              </div>
 
-        <div class="status-banner ready" id="playerStatusBanner">
-          <div class="status-line-strong">Ready for queue</div>
-          <div class="status-line" id="appStatus">Not connected.</div>
+              <div class="section wallet-card-section">
+                <label class="field-label">Connected Wallet</label>
+                <div class="input-shell" id="connectedWalletBox">
+                  -
+                </div>
+              </div>
+
+              <div class="section wallet-card-section">
+                <label class="field-label">Session Token</label>
+                <div class="input-shell" id="sessionTokenBox">
+                  -
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
+      </section>
 
-        <div class="button-row">
-          <button type="button" class="btn btn-connect" id="connectBtn">Connect Wallet</button>
-        </div>
+      <section class="panel">
+        <div class="panel-inner">
+          <h2 class="panel-title">Match Setup</h2>
 
-        <div class="section">
-          <label class="field-label">Match Sizes</label>
-          <div class="selector-grid" id="matchSizeSelector">
-            <button type="button" class="select-chip selected" data-match-size="2" aria-pressed="true">2 Players</button>
-            <button type="button" class="select-chip" data-match-size="3" aria-pressed="false">3 Players</button>
-            <button type="button" class="select-chip selected" data-match-size="4" aria-pressed="true">4 Players</button>
-            <button type="button" class="select-chip" data-match-size="5" aria-pressed="false">5 Players</button>
+          <div class="section">
+            <label class="field-label">Match Sizes</label>
+            <div class="selector-grid" id="matchSizeSelector">
+              <button type="button" class="select-chip selected" data-match-size="2" aria-pressed="true">2 Players</button>
+              <button type="button" class="select-chip" data-match-size="3" aria-pressed="false">3 Players</button>
+              <button type="button" class="select-chip selected" data-match-size="4" aria-pressed="true">4 Players</button>
+              <button type="button" class="select-chip" data-match-size="5" aria-pressed="false">5 Players</button>
+            </div>
+            <div class="hint">Multi-select enabled. Let players queue for more than one match size.</div>
           </div>
-          <div class="hint">Multi-select enabled. Let players queue for more than one match size.</div>
-        </div>
 
-        <div class="section">
-          <label class="field-label">Entry Fees</label>
-          <div class="selector-grid" id="entryFeeSelector">
-            <button type="button" class="select-chip" data-entry-fee="500000000000000" aria-pressed="false">0.0005 ETH</button>
-            <button type="button" class="select-chip selected" data-entry-fee="1000000000000000" aria-pressed="true">0.001 ETH</button>
-            <button type="button" class="select-chip" data-entry-fee="2500000000000000" aria-pressed="false">0.0025 ETH</button>
-            <button type="button" class="select-chip" data-entry-fee="5000000000000000" aria-pressed="false">0.005 ETH</button>
-            <button type="button" class="select-chip" data-entry-fee="10000000000000000" aria-pressed="false">0.01 ETH</button>
+          <div class="section">
+            <label class="field-label">Entry Fees</label>
+            <div class="selector-grid" id="entryFeeSelector">
+              <button type="button" class="select-chip" data-entry-fee="500000000000000" aria-pressed="false">0.0005 ETH</button>
+              <button type="button" class="select-chip selected" data-entry-fee="1000000000000000" aria-pressed="true">0.001 ETH</button>
+              <button type="button" class="select-chip" data-entry-fee="2500000000000000" aria-pressed="false">0.0025 ETH</button>
+              <button type="button" class="select-chip" data-entry-fee="5000000000000000" aria-pressed="false">0.005 ETH</button>
+              <button type="button" class="select-chip" data-entry-fee="10000000000000000" aria-pressed="false">0.01 ETH</button>
+            </div>
+            <div class="hint">Multi-select enabled. Let players join several fee tiers at once.</div>
           </div>
-          <div class="hint">Multi-select enabled. Let players join several fee tiers at once.</div>
-        </div>
 
-        <div class="button-row">
-          <button type="button" class="btn btn-ready" id="joinQueueBtn">Join Queue</button>
-          <button type="button" class="btn btn-leave" id="leaveQueueBtn">Leave Queue</button>
-          <button type="button" class="btn btn-neutral" id="refreshQueueBtn">Refresh Queue Status</button>
-        </div>
+          <div class="status-banner ready" id="playerStatusBanner">
+            <div class="status-line-strong">Ready for queue</div>
+            <div class="status-line" id="appStatus">Not connected.</div>
+          </div>
 
-        <div class="button-row hidden" id="joinRow">
-          <button type="button" class="btn btn-neutral" id="joinOnChainBtn">Join On Chain</button>
-        </div>
+          <div class="button-row">
+            <button type="button" class="btn btn-ready" id="joinQueueBtn">Join Queue</button>
+            <button type="button" class="btn btn-leave" id="leaveQueueBtn">Leave Queue</button>
+            <button type="button" class="btn btn-neutral" id="refreshQueueBtn">Refresh Queue Status</button>
+          </div>
 
-        <div class="section">
-          <label class="field-label">Connected Wallet</label>
-          <div class="input-shell" id="connectedWalletBox">
-            -
+          <div class="button-row hidden" id="joinRow">
+            <button type="button" class="btn btn-neutral" id="joinOnChainBtn">Join On Chain</button>
           </div>
         </div>
-
-        <div class="section">
-          <label class="field-label">Session Token</label>
-          <div class="input-shell" id="sessionTokenBox">
-            -
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
 
     <!-- RIGHT PANEL -->
     <section class="panel">
