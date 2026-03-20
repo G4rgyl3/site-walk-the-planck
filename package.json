@@ -1,0 +1,15 @@
+{
+  "name": "walk-the-planck",
+  "version": "1.0.0",
+  "description": "Walk the Planck game for Pyth hack-a-thon",
+  "license": "ISC",
+  "author": "G4rgyl3",
+  "type": "module",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@ohlabs/js-chain": "^1.0.7"
+  }
+}

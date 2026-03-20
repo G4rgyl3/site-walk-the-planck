@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Walk the Planck Matchmaking</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "@ohlabs/js-core/": "https://cdn.jsdelivr.net/npm/@ohlabs/js-core@3.0.1/",
+        "@ohlabs/js-chain/": "https://cdn.jsdelivr.net/npm/@ohlabs/js-chain@1.0.7/",
+        "@ohlabs/configuration/": "https://cdn.jsdelivr.net/npm/@ohlabs/configuration@0.0.3/"
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="style.css">
+  <script src="ethers.5.2.umd.min.js" async></script>
+  <script src="main.js" type="module"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- LEFT PANEL -->
+    <section class="panel">
+      <div class="panel-inner">
+        <h1 class="panel-title">Player Panel</h1>
+
+        <div class="status-banner ready" id="playerStatusBanner">
+          <div class="status-line-strong">Ready for queue</div>
+          <div class="status-line" id="appStatus">Not connected.</div>
+        </div>
+
+        <div class="button-row">
+          <button type="button" class="btn btn-connect" id="connectBtn">Connect Wallet</button>
+          <button type="button" class="btn btn-neutral" id="disconnectBtn">Disconnect</button>
+          <button type="button" class="btn btn-neutral" id="forgetSessionBtn">Forget Local Session</button>
+        </div>
+
+        <div class="section">
+          <label class="field-label">Match Sizes</label>
+          <div class="selector-grid" id="matchSizeSelector">
+            <button type="button" class="select-chip selected" data-match-size="2" aria-pressed="true">2 Players</button>
+            <button type="button" class="select-chip" data-match-size="3" aria-pressed="false">3 Players</button>
+            <button type="button" class="select-chip selected" data-match-size="4" aria-pressed="true">4 Players</button>
+            <button type="button" class="select-chip" data-match-size="5" aria-pressed="false">5 Players</button>
+          </div>
+          <div class="hint">Multi-select enabled. Let players queue for more than one match size.</div>
+        </div>
+
+        <div class="section">
+          <label class="field-label">Entry Fees</label>
+          <div class="selector-grid" id="entryFeeSelector">
+            <button type="button" class="select-chip" data-entry-fee="500000000000000" aria-pressed="false">0.0005 ETH</button>
+            <button type="button" class="select-chip selected" data-entry-fee="1000000000000000" aria-pressed="true">0.001 ETH</button>
+            <button type="button" class="select-chip" data-entry-fee="2500000000000000" aria-pressed="false">0.0025 ETH</button>
+            <button type="button" class="select-chip" data-entry-fee="5000000000000000" aria-pressed="false">0.005 ETH</button>
+            <button type="button" class="select-chip" data-entry-fee="10000000000000000" aria-pressed="false">0.01 ETH</button>
+          </div>
+          <div class="hint">Multi-select enabled. Let players join several fee tiers at once.</div>
+        </div>
+
+        <div class="button-row">
+          <button type="button" class="btn btn-ready" id="joinQueueBtn">Join Queue</button>
+          <button type="button" class="btn btn-leave" id="leaveQueueBtn">Leave Queue</button>
+          <button type="button" class="btn btn-neutral" id="refreshQueueBtn">Refresh Queue Status</button>
+        </div>
+
+        <div class="button-row hidden" id="joinRow">
+          <button type="button" class="btn btn-neutral" id="joinOnChainBtn">Join On Chain</button>
+        </div>
+
+        <div class="section">
+          <label class="field-label">Connected Wallet</label>
+          <div class="input-shell" id="connectedWalletBox">
+            -
+          </div>
+        </div>
+
+        <div class="section">
+          <label class="field-label">Session Token</label>
+          <div class="input-shell" id="sessionTokenBox">
+            -
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL -->
+    <section class="panel">
+      <div class="panel-inner">
+        <div class="queue-panel-header">
+          <h2 class="panel-title">Matchmaking</h2>
+          <p class="panel-subtitle">
+            Live status for your current matchmaking session.
+          </p>
+          <div class="accent-rule"></div>
+        </div>
+
+        <div class="match-state-card" id="matchStateCard">
+          <div class="match-state-row">
+            <span class="match-state-dot" id="matchStateDot"></span>
+            <div>
+              <div class="match-state-title" id="matchStateTitle">Not in queue</div>
+              <div class="match-state-detail" id="matchStateDetail">
+                Select match sizes and entry fees, then click I’m Ready.
+              </div>
+            </div>
+          </div>
+
+          <div class="match-state-meta" id="matchStateMeta">
+            No active matchmaking preferences.
+          </div>
+        </div>
+        
+        <div class="available-match-panel hidden" id="availableMatchPanel">
+          <div class="available-match-header">
+            <div class="available-match-badge">Match Found</div>
+            <div class="available-match-title">A match is ready to join</div>
+            <div class="available-match-subtitle" id="availableMatchSubtitle">
+              Claim your spot before it fills.
+            </div>
+          </div>
+
+          <div class="available-match-list" id="availableMatchList"></div>
+        </div>
+
+        <div class="queue-panel-header" style="margin-top: 18px;">
+          <h3 class="panel-title" style="font-size: 18px; margin-bottom: 8px;">Live Buckets</h3>
+          <p class="panel-subtitle" style="margin-bottom: 0;">
+            Recently active players by match size and fee tier.
+          </p>
+        </div>
+
+        <div class="queue-list" id="queueList">
+          <div class="queue-card">
+            <div class="queue-title">Loading queue status...</div>
+            <div class="queue-waiting">Waiting for first refresh.</div>
+          </div>
+        </div>
+
+        
+      </div>
+    </section>
+  </div>
+</body>
+</html>
