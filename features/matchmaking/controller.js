@@ -6,7 +6,7 @@ import {
     subscribe as subscribeWallet
 } from "@ohlabs/js-chain/utility/wallet.js";
 import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
-import { refreshMatchCandidates } from "../../matchmaking.js";
+import { hasMatchCandidate, refreshMatchCandidates } from "../../matchmaking.js";
 import { leaveQueue, refreshQueues, startPolling } from "../../queue.js";
 import { resetSessionToken } from "../../session.js";
 import {
@@ -142,6 +142,17 @@ async function handleLeaveQueueClick() {
     await updateMatchmakingUI();
 }
 
+async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
+    await refreshMatchCandidates();
+
+    if (!hasMatchCandidate(maxPlayers, entryFeeWei)) {
+        setStatus("That match is no longer fillable. Choose another available option.");
+        return;
+    }
+
+    setStatus(`Match ${maxPlayers} players / ${entryFeeWei} wei is still fillable. On-chain join is the next hook to wire.`);
+}
+
 function handleWalletStateChange(walletState) {
     void syncWalletState(walletState).catch((err) => {
         console.error(err);
@@ -211,10 +222,7 @@ function bindEvents() {
 
             const maxPlayers = Number(button.dataset.maxPlayers);
             const entryFeeWei = button.dataset.entryFeeWei;
-
-            void maxPlayers;
-            void entryFeeWei;
-            // next step: call your claim/select endpoint here
+            await handleJoinMatchClick(maxPlayers, entryFeeWei);
         });
     }
 

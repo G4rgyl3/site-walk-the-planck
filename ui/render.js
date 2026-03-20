@@ -7,7 +7,6 @@ import {
     connectBtn,
     entryFeeSelector,
     joinQueueBtn,
-    joinRow,
     leaveQueueBtn,
     matchSizeSelector,
     matchStateDetail,
@@ -127,10 +126,6 @@ function renderQueues(queues) {
 
     if (!Array.isArray(queues) || queues.length === 0) {
         queueList.innerHTML = '<div class="queue-card">No live queues right now.</div>';
-
-        if (joinRow) {
-            joinRow.classList.add("hidden");
-        }
         return;
     }
 
@@ -145,10 +140,6 @@ function renderQueues(queues) {
             </div>
         `;
     }).join("");
-
-    if (joinRow) {
-        joinRow.classList.add("hidden");
-    }
 }
 
 function renderAvailableMatches(matches) {

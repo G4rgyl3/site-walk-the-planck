@@ -3,9 +3,32 @@ import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
 import { formatSelections, renderAvailableMatches, setMatchmakingState } from "./ui/render.js";
 import {
+    getAvailableMatches,
     getIsInQueue,
     setAvailableMatches
 } from "./state/app-state.js";
+
+function sortMatches(matches) {
+    return [...matches].sort((left, right) => {
+        if (left.maxPlayers !== right.maxPlayers) {
+            return left.maxPlayers - right.maxPlayers;
+        }
+
+        const leftFee = BigInt(left.entryFeeWei);
+        const rightFee = BigInt(right.entryFeeWei);
+
+        if (leftFee < rightFee) return -1;
+        if (leftFee > rightFee) return 1;
+        return 0;
+    });
+}
+
+function hasMatchCandidate(maxPlayers, entryFeeWei) {
+    return getAvailableMatches().some((match) =>
+        Number(match.maxPlayers) === Number(maxPlayers) &&
+        String(match.entryFeeWei) === String(entryFeeWei)
+    );
+}
 
 async function refreshMatchCandidates() {
     const walletAddress = getWalletState().account;
@@ -22,7 +45,7 @@ async function refreshMatchCandidates() {
             `${ENDPOINTS.matchCandidates}?walletAddress=${encodeURIComponent(walletAddress.toLowerCase())}&sessionToken=${encodeURIComponent(getSessionToken())}&t=${Date.now()}`
         );
 
-        const matches = data.matches || [];
+        const matches = sortMatches(data.matches || []);
         setAvailableMatches(matches);
         renderAvailableMatches(matches);
 
@@ -30,7 +53,7 @@ async function refreshMatchCandidates() {
             setMatchmakingState({
                 searching: true,
                 title: "Match available",
-                detail: "A match is ready below. Claim your spot to join.",
+                detail: "A fillable match is ready below. Choose one to continue on chain.",
                 meta: formatSelections()
             });
         } else {
@@ -48,4 +71,4 @@ async function refreshMatchCandidates() {
     }
 }
 
-export { refreshMatchCandidates }
+export { hasMatchCandidate, refreshMatchCandidates }
