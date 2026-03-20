@@ -24,28 +24,22 @@
         <div class="panel-inner">
           <h1 class="panel-title">Player Panel</h1>
           <section class="section wallet-section">
-            <div class="wallet-card">
-              <div class="wallet-card-header">
-                <div>
-                  <div class="wallet-card-title">Wallet</div>
-                  <div class="wallet-card-subtitle">Connection and session details for this browser session.</div>
-                </div>
-                <button type="button" class="btn btn-connect" id="connectBtn">Connect Wallet</button>
-              </div>
-
-              <div class="section wallet-card-section">
-                <label class="field-label">Connected Wallet</label>
-                <div class="input-shell" id="connectedWalletBox">
+            <div class="wallet-strip">
+              <div class="wallet-strip-main">
+                <div class="wallet-strip-title">Wallet</div>
+                <div class="wallet-strip-summary" id="connectedWalletBox">
                   -
                 </div>
               </div>
 
-              <div class="section wallet-card-section">
-                <label class="field-label">Session Token</label>
-                <div class="input-shell" id="sessionTokenBox">
+              <div class="wallet-strip-meta">
+                <div class="wallet-strip-token-label">Session</div>
+                <div class="wallet-strip-token" id="sessionTokenBox">
                   -
                 </div>
               </div>
+
+              <button type="button" class="btn btn-connect wallet-strip-action" id="connectBtn">Connect Wallet</button>
             </div>
           </section>
         </div>
