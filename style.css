@@ -157,6 +157,13 @@
       color: #07111d;
     }
 
+    .btn-connect.connected {
+      background: linear-gradient(180deg, #52f0a0 0%, #35d58a 100%);
+      color: #04130b;
+      border-color: rgba(53, 213, 138, 0.48);
+      box-shadow: 0 10px 28px rgba(20, 115, 74, 0.22);
+    }
+
     .btn-neutral {
       background: linear-gradient(180deg, #243554 0%, #18253f 100%);
       color: var(--text-main);
@@ -256,6 +263,57 @@
       line-height: 1.4;
       word-break: break-all;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .wallet-identity {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .wallet-presence {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex: 0 0 auto;
+    }
+
+    .wallet-presence.is-connected {
+      color: #8ff0bf;
+    }
+
+    .wallet-presence-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #607096;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
+      flex: 0 0 10px;
+    }
+
+    .wallet-presence.is-connected .wallet-presence-dot {
+      background: var(--green-1);
+      box-shadow:
+        0 0 0 4px rgba(53, 213, 138, 0.12),
+        0 0 18px rgba(53, 213, 138, 0.38);
+    }
+
+    .wallet-address-short {
+      min-width: 0;
+      text-align: right;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .queue-panel-header {

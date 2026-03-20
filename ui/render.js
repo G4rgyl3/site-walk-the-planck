@@ -4,6 +4,7 @@ import {
     availableMatchList,
     availableMatchPanel,
     appStatus,
+    connectBtn,
     entryFeeSelector,
     joinQueueBtn,
     joinRow,
@@ -30,6 +31,14 @@ function setStatus(message) {
     }
 }
 
+function shortenWalletAddress(walletAddress) {
+    if (!walletAddress || walletAddress.length < 12) {
+        return walletAddress || "-";
+    }
+
+    return `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+}
+
 function formatSelections() {
     const { matchSizes, entryFeesWei } = getSelectedPreferences();
 
@@ -48,6 +57,12 @@ function updateActionButtons() {
     const connected = !!getWalletState().account;
     const isInQueue = getIsInQueue();
 
+    if (connectBtn) {
+        connectBtn.disabled = connected;
+        connectBtn.textContent = connected ? "Wallet Connected" : "Connect Wallet";
+        connectBtn.classList.toggle("connected", connected);
+    }
+
     if (joinQueueBtn) {
         joinQueueBtn.disabled = !connected || isInQueue;
         joinQueueBtn.textContent = isInQueue ? "Searching..." : "Join queue";
@@ -64,9 +79,29 @@ function updateActionButtons() {
 
 function updateWalletUI() {
     const walletAddress = getWalletState().account || "";
+    const connected = !!walletAddress;
 
     if (walletBox) {
-        walletBox.textContent = walletAddress || "-";
+        walletBox.title = walletAddress || "";
+        walletBox.innerHTML = connected
+            ? `
+                <div class="wallet-identity">
+                    <div class="wallet-presence is-connected">
+                        <span class="wallet-presence-dot"></span>
+                        <span class="wallet-presence-label">Connected</span>
+                    </div>
+                    <div class="wallet-address-short">${shortenWalletAddress(walletAddress)}</div>
+                </div>
+            `
+            : `
+                <div class="wallet-identity">
+                    <div class="wallet-presence">
+                        <span class="wallet-presence-dot"></span>
+                        <span class="wallet-presence-label">Not connected</span>
+                    </div>
+                    <div class="wallet-address-short">-</div>
+                </div>
+            `;
     }
 
     if (sessionBox) {
