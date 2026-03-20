@@ -4,7 +4,7 @@ const ENDPOINTS = {
     leaveMatchmaking: "leave_matchmaking.php",
     heartbeat: "player_heartbeat.php",
     queueStatus: "queue_status.php",
-    matchCandidates : "get_match_candidtates.php"
+    matchCandidates : "get_match_candidates.php"
 }
 
 async function getJson(path) {

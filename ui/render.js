@@ -1,4 +1,5 @@
 import { fromWei } from "@ohlabs/js-chain/utility/ethers.js";
+import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import {
     availableMatchList,
     availableMatchPanel,
@@ -20,8 +21,7 @@ import {
 import {
     getIsInQueue,
     getSelectedPreferences,
-    getSessionTokenValue,
-    getWalletAddress
+    getSessionTokenValue
 } from "../state/app-state.js";
 
 function setStatus(message) {
@@ -45,7 +45,7 @@ function formatSelections() {
 }
 
 function updateActionButtons() {
-    const connected = !!getWalletAddress();
+    const connected = !!getWalletState().account;
     const isInQueue = getIsInQueue();
 
     if (joinQueueBtn) {
@@ -63,8 +63,10 @@ function updateActionButtons() {
 }
 
 function updateWalletUI() {
+    const walletAddress = getWalletState().account || "";
+
     if (walletBox) {
-        walletBox.textContent = getWalletAddress() || "-";
+        walletBox.textContent = walletAddress || "-";
     }
 
     if (sessionBox) {

@@ -1,6 +1,4 @@
-const disconnectBtn = document.getElementById("disconnectBtn");
 const connectBtn = document.getElementById("connectBtn");
-const forgetSessionBtn = document.getElementById("forgetSessionBtn");
 const joinQueueBtn = document.getElementById("joinQueueBtn");
 const leaveQueueBtn = document.getElementById("leaveQueueBtn");
 const refreshQueueBtn = document.getElementById("refreshQueueBtn");
@@ -24,9 +22,7 @@ export {
     availableMatchList,
     availableMatchPanel,
     connectBtn,
-    disconnectBtn,
     entryFeeSelector,
-    forgetSessionBtn,
     joinOnChainBtn,
     joinQueueBtn,
     joinRow,

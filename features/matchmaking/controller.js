@@ -1,25 +1,25 @@
 import { ENDPOINTS, postJson } from "../../api.js";
-import { startHeartbeat } from "../../heartbeat.js";
-import { refreshMatchCandidates } from "../../matchmaking.js";
-import { leaveQueue, refreshQueues } from "../../queue.js";
-import { initializeWallet, connect } from "@ohlabs/js-chain/utility/wallet.js";
 import {
-    clearWalletAddress,
+    connect,
+    getState as getWalletState,
+    initializeWallet,
+    subscribe as subscribeWallet
+} from "@ohlabs/js-chain/utility/wallet.js";
+import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
+import { refreshMatchCandidates } from "../../matchmaking.js";
+import { leaveQueue, refreshQueues, startPolling } from "../../queue.js";
+import {
     getIsInQueue,
     getSelectedPreferences,
     getSessionTokenValue,
-    getWalletAddress,
     resetMatchmakingState,
     setIsInQueue,
-    setSelectedPreferences,
-    setWalletAddress
+    setSelectedPreferences
 } from "../../state/app-state.js";
 import {
     availableMatchList,
     connectBtn,
-    disconnectBtn,
     entryFeeSelector,
-    forgetSessionBtn,
     joinQueueBtn,
     leaveQueueBtn,
     matchSizeSelector,
@@ -32,6 +32,9 @@ import {
     setStatus,
     updateWalletUI
 } from "../../ui/render.js";
+
+let unsubscribeWallet = null;
+let lastWalletAccount = null;
 
 function getSelectedValues(container, datasetKey, parseValue) {
     if (!container) return [];
@@ -88,7 +91,7 @@ async function updateMatchmakingUI() {
 }
 
 async function joinQueue() {
-    const walletAddress = getWalletAddress();
+    const walletAddress = getWalletState().account;
 
     if (!walletAddress) {
         setStatus("Connect wallet first.");
@@ -117,61 +120,49 @@ async function joinQueue() {
     }
 }
 
-async function handleWalletConnected(event) {
-    const walletAddress = event.detail || "";
-    setWalletAddress(walletAddress);
-
-    if (walletAddress) {
-        setStatus(`Wallet changed: ${walletAddress}`);
-    } else {
-        setStatus("Wallet disconnected.");
-    }
-
-    updateWalletUI();
-}
-
-async function handleWalletDisconnected() {
-    clearWalletAddress();
-    resetMatchmakingState();
-    updateWalletUI();
-    await updateMatchmakingUI();
-    setStatus("Wallet disconnected.");
-}
-
-async function handleDisconnectClick() {
-    const walletAddress = getWalletAddress();
-
-    try {
-        await leaveQueue(walletAddress);
-    } catch {}
-
-    resetMatchmakingState();
-    await updateMatchmakingUI();
-    clearWalletAddress();
-    updateWalletUI();
-    setStatus("Local wallet session cleared. Wallet extension may still remain connected.");
-}
-
 async function handleLeaveQueueClick() {
-    const walletAddress = getWalletAddress();
+    const walletAddress = getWalletState().account;
     await leaveQueue(walletAddress);
     resetMatchmakingState();
     await updateMatchmakingUI();
 }
 
+function handleWalletStateChange(walletState) {
+    void syncWalletState(walletState);
+}
+
+async function syncWalletState(walletState) {
+    const walletAddress = walletState.account || "";
+    const previousWalletAddress = lastWalletAccount;
+
+    if (walletAddress && previousWalletAddress && walletAddress !== previousWalletAddress) {
+        if (getIsInQueue()) {
+            await leaveQueue(previousWalletAddress);
+        }
+
+        stopHeartbeat();
+        resetMatchmakingState();
+        setStatus(`Wallet changed: ${walletAddress}`);
+    } else if (walletAddress && walletAddress !== previousWalletAddress) {
+        setStatus(`Wallet changed: ${walletAddress}`);
+    } else if (!walletAddress && previousWalletAddress) {
+        if (getIsInQueue()) {
+            await leaveQueue(previousWalletAddress);
+        }
+
+        stopHeartbeat();
+        resetMatchmakingState();
+        setStatus("Wallet disconnected.");
+    }
+
+    lastWalletAccount = walletAddress;
+    updateWalletUI();
+    void updateMatchmakingUI();
+}
+
 function bindEvents() {
     if (connectBtn) {
         connectBtn.addEventListener("click", connect);
-    }
-
-    if (disconnectBtn) {
-        disconnectBtn.addEventListener("click", handleDisconnectClick);
-    }
-
-    if (forgetSessionBtn) {
-        forgetSessionBtn.addEventListener("click", () => {
-            setStatus("Forget Local Session is not wired yet.");
-        });
     }
 
     if (joinQueueBtn) {
@@ -200,18 +191,17 @@ function bindEvents() {
         });
     }
 
-    window.addEventListener("onConnected", handleWalletConnected);
-    window.addEventListener("onDisconnected", handleWalletDisconnected);
 }
 
 async function initMatchmakingController() {
-    window.onload = initializeWallet;
-    window.login = connect;
-
     bindEvents();
     setupMultiSelectChips(matchSizeSelector);
     setupMultiSelectChips(entryFeeSelector);
     syncSelectionsFromDom();
+    startPolling();
+    unsubscribeWallet?.();
+    unsubscribeWallet = subscribeWallet(handleWalletStateChange);
+    await initializeWallet();
     updateWalletUI();
     await updateMatchmakingUI();
 }

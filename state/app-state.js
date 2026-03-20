@@ -1,9 +1,7 @@
+import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "../session.js";
 
-const WALLET_STORAGE_KEY = "wtp_wallet";
-
 const state = {
-    walletAddress: localStorage.getItem(WALLET_STORAGE_KEY) || "",
     sessionToken: getSessionToken(),
     isInQueue: false,
     selectedMatchSizes: [],
@@ -15,8 +13,12 @@ const state = {
 const listeners = new Set();
 
 function getState() {
+    const wallet = getWalletState();
+
     return {
         ...state,
+        wallet,
+        walletAddress: wallet.account || "",
         selectedMatchSizes: [...state.selectedMatchSizes],
         selectedEntryFeesWei: [...state.selectedEntryFeesWei],
         queues: [...state.queues],
@@ -35,23 +37,7 @@ function subscribe(listener) {
 }
 
 function getWalletAddress() {
-    return state.walletAddress;
-}
-
-function setWalletAddress(walletAddress) {
-    state.walletAddress = walletAddress || "";
-
-    if (state.walletAddress) {
-        localStorage.setItem(WALLET_STORAGE_KEY, state.walletAddress);
-    } else {
-        localStorage.removeItem(WALLET_STORAGE_KEY);
-    }
-
-    notify();
-}
-
-function clearWalletAddress() {
-    setWalletAddress("");
+    return getWalletState().account || "";
 }
 
 function getSessionTokenValue() {
@@ -105,7 +91,6 @@ function resetMatchmakingState() {
 }
 
 export {
-    clearWalletAddress,
     getAvailableMatches,
     getIsInQueue,
     getQueues,
@@ -119,6 +104,5 @@ export {
     setIsInQueue,
     setQueues,
     setSelectedPreferences,
-    setWalletAddress,
     subscribe
 };

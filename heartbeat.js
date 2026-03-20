@@ -1,12 +1,12 @@
 import { ENDPOINTS, postJson } from "./api.js";
+import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
-import { getWalletAddress } from "./state/app-state.js";
 
 const HEARTBEAT_MS = 10000;
 let heartbeatInterval = null;
 
 async function sendHeartbeat() {
-    const walletAddress = getWalletAddress();
+    const walletAddress = getWalletState().account;
     if (!walletAddress) return;
 
     try {

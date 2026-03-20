@@ -1,14 +1,14 @@
-import { ENDPOINTS } from "./api.js";
+import { ENDPOINTS, getJson } from "./api.js";
+import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
 import { formatSelections, renderAvailableMatches, setMatchmakingState } from "./ui/render.js";
 import {
     getIsInQueue,
-    getWalletAddress,
     setAvailableMatches
 } from "./state/app-state.js";
 
 async function refreshMatchCandidates() {
-    const walletAddress = getWalletAddress();
+    const walletAddress = getWalletState().account;
     const isInQueue = getIsInQueue();
 
     if (!walletAddress || !isInQueue) {
@@ -18,16 +18,9 @@ async function refreshMatchCandidates() {
     }
 
     try {
-        const response = await fetch(
-            `${ENDPOINTS.matchCandidates}?walletAddress=${encodeURIComponent(walletAddress.toLowerCase())}&sessionToken=${encodeURIComponent(getSessionToken())}&t=${Date.now()}`,
-            { cache: "no-store" }
+        const data = await getJson(
+            `${ENDPOINTS.matchCandidates}?walletAddress=${encodeURIComponent(walletAddress.toLowerCase())}&sessionToken=${encodeURIComponent(getSessionToken())}&t=${Date.now()}`
         );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || "Failed to load match candidates");
-        }
 
         const matches = data.matches || [];
         setAvailableMatches(matches);
