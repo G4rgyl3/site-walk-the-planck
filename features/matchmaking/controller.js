@@ -8,6 +8,7 @@ import {
 import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
 import { refreshMatchCandidates } from "../../matchmaking.js";
 import { leaveQueue, refreshQueues, startPolling } from "../../queue.js";
+import { resetSessionToken } from "../../session.js";
 import {
     getIsInQueue,
     getSelectedPreferences,
@@ -87,7 +88,7 @@ async function updateMatchmakingUI() {
         });
     }
 
-    await refreshMatchCandidates();
+    //await refreshMatchCandidates();
 }
 
 async function joinQueue() {
@@ -134,24 +135,27 @@ function handleWalletStateChange(walletState) {
 async function syncWalletState(walletState) {
     const walletAddress = walletState.account || "";
     const previousWalletAddress = lastWalletAccount;
+    const previousSessionToken = getSessionTokenValue();
 
     if (walletAddress && previousWalletAddress && walletAddress !== previousWalletAddress) {
         if (getIsInQueue()) {
-            await leaveQueue(previousWalletAddress);
+            await leaveQueue(previousWalletAddress, previousSessionToken);
         }
 
         stopHeartbeat();
         resetMatchmakingState();
+        resetSessionToken();
         setStatus(`Wallet changed: ${walletAddress}`);
     } else if (walletAddress && walletAddress !== previousWalletAddress) {
         setStatus(`Wallet changed: ${walletAddress}`);
     } else if (!walletAddress && previousWalletAddress) {
         if (getIsInQueue()) {
-            await leaveQueue(previousWalletAddress);
+            await leaveQueue(previousWalletAddress, previousSessionToken);
         }
 
         stopHeartbeat();
         resetMatchmakingState();
+        resetSessionToken();
         setStatus("Wallet disconnected.");
     }
 

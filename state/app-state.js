@@ -2,7 +2,6 @@ import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "../session.js";
 
 const state = {
-    sessionToken: getSessionToken(),
     isInQueue: false,
     selectedMatchSizes: [],
     selectedEntryFeesWei: [],
@@ -41,7 +40,7 @@ function getWalletAddress() {
 }
 
 function getSessionTokenValue() {
-    return state.sessionToken;
+    return getSessionToken();
 }
 
 function getIsInQueue() {

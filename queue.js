@@ -7,13 +7,13 @@ import { renderQueues, setStatus } from "./ui/render.js";
 let pollInterval = null;
 const POLL_MS = 5000;
 
-async function leaveQueue(walletAddress) {
+async function leaveQueue(walletAddress, sessionToken = getSessionToken()) {
     if (!walletAddress) return;
 
     try {
         await postJson(ENDPOINTS.leaveMatchmaking, {
             walletAddress: walletAddress.toLowerCase(),
-            sessionToken: getSessionToken()
+            sessionToken
         });
 
         stopHeartbeat();
