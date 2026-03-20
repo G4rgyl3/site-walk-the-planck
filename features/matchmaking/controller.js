@@ -102,7 +102,7 @@ async function updateMatchmakingUI() {
         });
     }
 
-    //await refreshMatchCandidates();
+    await refreshMatchCandidates();
 }
 
 async function joinQueue() {
