@@ -1,6 +1,7 @@
 import { ENDPOINTS, getJson, postJson } from "./api.js";
 import { getSessionToken } from "./session.js";
 import { stopHeartbeat } from "./heartbeat.js";
+import { refreshMatchCandidates } from "./matchmaking.js";
 import { setQueues } from "./state/app-state.js";
 import { renderQueues, setStatus } from "./ui/render.js";
 
@@ -28,11 +29,10 @@ async function leaveQueue(walletAddress, sessionToken = getSessionToken()) {
 async function refreshQueues() {
     try {
         const data = await getJson(`${ENDPOINTS.queueStatus}?t=${Date.now()}`);
-        console.log("Refreshed queues");
-        console.log(data);
         const queues = data.queues || [];
         setQueues(queues);
         renderQueues(queues);
+        await refreshMatchCandidates();
     } catch (err) {
         console.error(err);
         setStatus(`Failed to load queue status: ${err.message}`);
