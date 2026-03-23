@@ -6,6 +6,7 @@ import {
     subscribe as subscribeWallet
 } from "@ohlabs/js-chain/utility/wallet.js";
 import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
+import { joinPublishedLobby } from "./walk-the-planck-contract.js";
 import { hasMatchCandidate, refreshMatchCandidates } from "../../matchmaking.js";
 import { leaveQueue, refreshQueues, startPolling } from "../../queue.js";
 import { resetSessionToken } from "../../session.js";
@@ -150,7 +151,18 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
         return;
     }
 
-    setStatus(`Match ${maxPlayers} players / ${entryFeeWei} wei is still fillable. On-chain join is the next hook to wire.`);
+    try {
+        setStatus(`Submitting join transaction for ${maxPlayers} players at ${entryFeeWei} wei...`);
+        const tx = await joinPublishedLobby(maxPlayers, entryFeeWei);
+        setStatus(`Transaction submitted: ${tx.hash}`);
+        await tx.wait();
+        setStatus("Join transaction confirmed on chain.");
+        await refreshMatchCandidates();
+        await refreshQueues();
+    } catch (err) {
+        console.error(err);
+        setStatus(`Join transaction failed: ${err.message}`);
+    }
 }
 
 function handleWalletStateChange(walletState) {
