@@ -6,6 +6,7 @@ import { formatSelections, renderAvailableMatches, renderPlayerMatches, setMatch
 import {
     getAvailableMatches,
     getIsInQueue,
+    getPlayerMatches,
     setAvailableMatches,
     setPlayerMatches
 } from "./state/app-state.js";
@@ -41,6 +42,30 @@ function hasBlockingMatch(matches) {
     );
 }
 
+function hasQueueCountableMatch(matches) {
+    return matches.some((match) =>
+        match.statusCode === 0 &&
+        Number(match.playerCount) < Number(match.maxPlayers)
+    );
+}
+
+function getDeactivatableBuckets(matches) {
+    return matches.filter((match) =>
+        (match.statusCode === 0 && Number(match.playerCount) >= Number(match.maxPlayers)) ||
+        match.statusCode === 1 ||
+        match.isClaimable ||
+        match.isRefundable
+    );
+}
+
+function getBlockedBucketKeys(matches = getPlayerMatches()) {
+    return new Set(
+        matches
+            .filter((match) => match.statusCode === 0 || match.statusCode === 1)
+            .map((match) => `${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`)
+    );
+}
+
 async function refreshMatchCandidates() {
     const walletAddress = getWalletState().account;
     const isInQueue = getIsInQueue();
@@ -56,7 +81,10 @@ async function refreshMatchCandidates() {
             `${ENDPOINTS.matchCandidates}?walletAddress=${encodeURIComponent(walletAddress.toLowerCase())}&sessionToken=${encodeURIComponent(getSessionToken())}&t=${Date.now()}`
         );
 
-        const matches = sortMatches(data.matches || []);
+        const blockedBucketKeys = getBlockedBucketKeys();
+        const matches = sortMatches(data.matches || []).filter((match) =>
+            !blockedBucketKeys.has(`${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`)
+        );
         setAvailableMatches(matches);
         renderAvailableMatches(matches);
 
@@ -96,7 +124,25 @@ async function refreshPlayerMatches() {
         setPlayerMatches(matches);
         renderPlayerMatches(matches);
 
-        if (!getIsInQueue() && !hasBlockingMatch(matches)) {
+        if (!getIsInQueue()) {
+            if (hasQueueCountableMatch(matches)) {
+                return;
+            }
+
+            if (hasBlockingMatch(matches)) {
+                const bucketsToDeactivate = getDeactivatableBuckets(matches);
+
+                for (const match of bucketsToDeactivate) {
+                    await postJson(ENDPOINTS.deactivateMatchBucket, {
+                        walletAddress: walletAddress.toLowerCase(),
+                        sessionToken: getSessionToken(),
+                        maxPlayers: Number(match.maxPlayers),
+                        entryFeeWei: String(match.entryFeeWei)
+                    });
+                }
+                return;
+            }
+
             await postJson(ENDPOINTS.releaseActiveMatch, {
                 walletAddress: walletAddress.toLowerCase(),
                 sessionToken: getSessionToken()

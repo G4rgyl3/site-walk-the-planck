@@ -38,17 +38,31 @@ try {
     ]);
 
     $existingSession = $activeMatchStmt->fetch();
-    if ($existingSession && $existingSession["active_match_id"] !== null) {
-        $pdo->rollBack();
-        http_response_code(409);
-        echo json_encode(["error" => "Player already committed to an on-chain match"]);
-        exit;
+    $hasActiveMatch = $existingSession && $existingSession["active_match_id"] !== null;
+
+    $lockedBucketKeys = [];
+    if ($hasActiveMatch) {
+        $lockedBucketsStmt = $pdo->prepare("
+            SELECT max_players, entry_fee_wei
+            FROM player_match_preferences
+            WHERE wallet_address = :wallet
+              AND session_token = :sessionToken
+        ");
+        $lockedBucketsStmt->execute([
+            ":wallet" => $walletAddress,
+            ":sessionToken" => $sessionToken
+        ]);
+
+        foreach ($lockedBucketsStmt->fetchAll() as $lockedBucket) {
+            $key = ((int)$lockedBucket["max_players"]) . ":" . (string)$lockedBucket["entry_fee_wei"];
+            $lockedBucketKeys[$key] = true;
+        }
     }
 
     $pdo->prepare("
         UPDATE player_sessions
         SET is_matchmaking = 0,
-            selected_match_id = NULL,
+            selected_match_id = IF(active_match_id IS NULL, NULL, selected_match_id),
             last_seen = NOW()
         WHERE wallet_address = :wallet
         AND session_token = :sessionToken
@@ -57,14 +71,28 @@ try {
         ":sessionToken" => $sessionToken
     ]);
 
-    $pdo->prepare("
-        DELETE FROM player_match_preferences
-        WHERE wallet_address = :wallet
-        AND session_token = :sessionToken
-    ")->execute([
-        ":wallet" => $walletAddress,
-        ":sessionToken" => $sessionToken
-    ]);
+    if (count($lockedBucketKeys) > 0) {
+        $deleteSql = "
+            DELETE FROM player_match_preferences
+            WHERE wallet_address = ?
+              AND session_token = ?
+              AND CONCAT(max_players, ':', entry_fee_wei) NOT IN (" .
+            implode(", ", array_fill(0, count($lockedBucketKeys), "?")) .
+            ")
+        ";
+        $deleteParams = array_merge([$walletAddress, $sessionToken], array_keys($lockedBucketKeys));
+        $stmt = $pdo->prepare($deleteSql);
+        $stmt->execute($deleteParams);
+    } else {
+        $pdo->prepare("
+            DELETE FROM player_match_preferences
+            WHERE wallet_address = ?
+              AND session_token = ?
+        ")->execute([
+            $walletAddress,
+            $sessionToken
+        ]);
+    }
 
     $pdo->commit();
 
@@ -79,5 +107,5 @@ try {
 
 echo json_encode([
     "success" => true,
-    "status" => "matchmaking_left"
+    "status" => $hasActiveMatch ? "matchmaking_left_active_bucket_retained" : "matchmaking_left"
 ]);

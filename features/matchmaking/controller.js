@@ -16,6 +16,7 @@ import { leaveQueue, refreshQueues, startPolling } from "../../queue.js";
 import { resetSessionToken } from "../../session.js";
 import {
     getIsInQueue,
+    getPlayerMatches,
     getSelectedPreferences,
     getSessionTokenValue,
     resetMatchmakingState,
@@ -41,6 +42,23 @@ import {
 
 let unsubscribeWallet = null;
 let lastWalletAccount = null;
+
+function hasBlockingMatch(matches = getPlayerMatches()) {
+    return matches.some((match) =>
+        match.isClaimable ||
+        match.isRefundable ||
+        match.statusCode === 0 ||
+        match.statusCode === 1
+    );
+}
+
+function getBlockedBucketKeys(matches = getPlayerMatches()) {
+    return new Set(
+        matches
+            .filter((match) => match.statusCode === 0 || match.statusCode === 1)
+            .map((match) => `${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`)
+    );
+}
 
 async function startPlayerSession(walletAddress, sessionToken) {
     await postJson(ENDPOINTS.startSession, {
@@ -86,7 +104,10 @@ function setupMultiSelectChips(container) {
 }
 
 async function updateMatchmakingUI() {
+    await refreshPlayerMatches();
+
     const isInQueue = getIsInQueue();
+    const activeOnChainMatch = hasBlockingMatch();
 
     setSelectorsLocked(isInQueue);
     updateWalletUI();
@@ -98,6 +119,13 @@ async function updateMatchmakingUI() {
             detail: "You are in queue and being considered for any selected buckets.",
             meta: formatSelections()
         });
+    } else if (activeOnChainMatch) {
+        setMatchmakingState({
+            searching: true,
+            title: "Active on-chain match",
+            detail: "You already have a live match in one bucket. You can still queue different buckets.",
+            meta: "The committed on-chain bucket is filtered out from queue re-entry."
+        });
     } else {
         setMatchmakingState({
             searching: false,
@@ -108,7 +136,6 @@ async function updateMatchmakingUI() {
     }
 
     await refreshMatchCandidates();
-    await refreshPlayerMatches();
 }
 
 async function joinQueue() {
@@ -121,18 +148,47 @@ async function joinQueue() {
 
     syncSelectionsFromDom();
     const { matchSizes, entryFeesWei } = getSelectedPreferences();
+    const blockedBucketKeys = getBlockedBucketKeys();
+
+    const blockedPairs = [];
+
+    for (const matchSize of matchSizes) {
+        for (const entryFeeWei of entryFeesWei) {
+            const key = `${Number(matchSize)}:${String(entryFeeWei)}`;
+            if (blockedBucketKeys.has(key)) {
+                blockedPairs.push(`${matchSize}p @ ${entryFeeWei} wei`);
+            }
+        }
+    }
+
+    if (blockedPairs.length === matchSizes.length * entryFeesWei.length) {
+        setStatus("All selected buckets are already active on chain for this wallet.");
+        return;
+    }
 
     try {
         await postJson(ENDPOINTS.enterMatchmaking, {
             walletAddress: walletAddress.toLowerCase(),
             sessionToken: getSessionTokenValue(),
             matchSizes,
-            entryFeesWei
+            entryFeesWei,
+            blockedCombinations: Array.from(blockedBucketKeys).map((key) => {
+                const [blockedMatchSize, blockedEntryFeeWei] = key.split(":");
+
+                return {
+                    maxPlayers: Number(blockedMatchSize),
+                    entryFeeWei: blockedEntryFeeWei
+                };
+            })
         });
 
         setIsInQueue(true);
         await updateMatchmakingUI();
-        setStatus("Searching for matches...");
+        setStatus(
+            blockedPairs.length > 0
+                ? `Searching for matches... skipped active bucket selections: ${blockedPairs.join(", ")}`
+                : "Searching for matches..."
+        );
         startHeartbeat();
         await refreshQueues();
     } catch (err) {

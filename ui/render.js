@@ -138,6 +138,7 @@ function renderQueues(queues) {
             <div class="queue-card">
                 <div class="queue-title">${q.maxPlayers} Players | ${fromWei(q.entryFeeWei)} ETH</div>
                 <div class="queue-ready">Ready: ${q.readyCount} / ${q.maxPlayers}</div>
+                <div class="queue-waiting">Queued: ${q.queuedCount ?? 0} | Committed: ${q.committedCount ?? 0}</div>
                 <div class="queue-waiting">${matchable ? "Matchable now" : "Waiting for more players"}</div>
             </div>
         `;
@@ -163,6 +164,9 @@ function renderAvailableMatches(matches) {
                 </div>
                 <div class="available-match-meta">
                     ${match.readyCount} ready | Match is available now
+                </div>
+                <div class="available-match-meta">
+                    Queued: ${match.queuedCount ?? 0} | Committed: ${match.committedCount ?? 0}
                 </div>
             </div>
             <button

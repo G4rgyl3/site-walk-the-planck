@@ -17,6 +17,7 @@ $walletAddress = strtolower(trim($input["walletAddress"] ?? ""));
 $sessionToken = trim((string)($input["sessionToken"] ?? ""));
 $matchSizes = $input["matchSizes"] ?? [];
 $entryFees = $input["entryFeesWei"] ?? [];
+$blockedCombinationsInput = $input["blockedCombinations"] ?? [];
 
 $allowedSizes = [2,3,4,5];
 $allowedFees = [
@@ -61,11 +62,26 @@ if (count($matchSizes) === 0 || count($entryFees) === 0) {
     exit;
 }
 
+$blockedBucketKeys = [];
+if (is_array($blockedCombinationsInput)) {
+    foreach ($blockedCombinationsInput as $blockedCombination) {
+        if (!is_array($blockedCombination)) {
+            continue;
+        }
+
+        $blockedSize = (int)($blockedCombination["maxPlayers"] ?? 0);
+        $blockedFee = (string)($blockedCombination["entryFeeWei"] ?? "");
+        if (in_array($blockedSize, $allowedSizes, true) && in_array($blockedFee, $allowedFees, true)) {
+            $blockedBucketKeys[$blockedSize . ":" . $blockedFee] = true;
+        }
+    }
+}
+
 try {
     $pdo->beginTransaction();
 
     $activeMatchStmt = $pdo->prepare("
-        SELECT active_match_id
+        SELECT session_token, active_match_id
         FROM player_sessions
         WHERE wallet_address = :wallet
         LIMIT 1
@@ -76,12 +92,62 @@ try {
     ]);
 
     $existingSession = $activeMatchStmt->fetch();
-    if ($existingSession && $existingSession["active_match_id"] !== null) {
-        $pdo->rollBack();
-        http_response_code(409);
-        echo json_encode(["error" => "Player already has an active on-chain match"]);
-        exit;
+    $previousSessionToken = $existingSession["session_token"] ?? null;
+    $hasActiveMatch = $existingSession && $existingSession["active_match_id"] !== null;
+
+    if ($previousSessionToken && $previousSessionToken !== $sessionToken) {
+        $pdo->prepare("
+            UPDATE player_match_preferences
+            SET session_token = :nextSessionToken
+            WHERE wallet_address = :wallet
+              AND session_token = :previousSessionToken
+        ")->execute([
+            ":nextSessionToken" => $sessionToken,
+            ":wallet" => $walletAddress,
+            ":previousSessionToken" => $previousSessionToken
+        ]);
     }
+
+    $lockedBucketKeys = $blockedBucketKeys;
+    if ($hasActiveMatch) {
+        $lockedBucketsStmt = $pdo->prepare("
+            SELECT max_players, entry_fee_wei
+            FROM player_match_preferences
+            WHERE wallet_address = :wallet
+              AND session_token = :sessionToken
+        ");
+        $lockedBucketsStmt->execute([
+            ":wallet" => $walletAddress,
+            ":sessionToken" => $sessionToken
+        ]);
+
+        foreach ($lockedBucketsStmt->fetchAll() as $lockedBucket) {
+            $key = ((int)$lockedBucket["max_players"]) . ":" . (string)$lockedBucket["entry_fee_wei"];
+            $lockedBucketKeys[$key] = true;
+        }
+    }
+
+    $queueCombinations = [];
+    $blockedCombinations = [];
+    foreach ($matchSizes as $size) {
+        foreach ($entryFees as $fee) {
+            $key = ((int)$size) . ":" . (string)$fee;
+            if (isset($lockedBucketKeys[$key])) {
+                $blockedCombinations[] = [
+                    "maxPlayers" => (int)$size,
+                    "entryFeeWei" => (string)$fee
+                ];
+                continue;
+            }
+
+            $queueCombinations[$key] = [
+                "maxPlayers" => (int)$size,
+                "entryFeeWei" => (string)$fee
+            ];
+        }
+    }
+
+    $shouldMatchmake = count($queueCombinations) > 0 ? 1 : 0;
 
     // upsert session
     $sql = "
@@ -95,35 +161,49 @@ try {
         ) VALUES (
             :wallet,
             :sessionToken,
-            1,
+            :isMatchmaking,
             NULL,
             NULL,
             NOW()
         )
         ON DUPLICATE KEY UPDATE
             session_token = VALUES(session_token),
-            is_matchmaking = 1,
-            selected_match_id = NULL,
-            active_match_id = NULL,
+            is_matchmaking = VALUES(is_matchmaking),
+            selected_match_id = IF(active_match_id IS NULL, NULL, selected_match_id),
+            active_match_id = active_match_id,
             last_seen = NOW();
     ";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         ":wallet" => $walletAddress,
-        ":sessionToken" => $sessionToken
+        ":sessionToken" => $sessionToken,
+        ":isMatchmaking" => $shouldMatchmake
     ]);
 
-    // clear old preferences
-    $stmt = $pdo->prepare("
-        DELETE FROM player_match_preferences
-        WHERE wallet_address = :wallet
-        AND session_token = :sessionToken
-    ");
-    $stmt->execute([
-        ":wallet" => $walletAddress,
-        ":sessionToken" => $sessionToken
-    ]);
+    if (count($lockedBucketKeys) > 0) {
+        $deleteSql = "
+            DELETE FROM player_match_preferences
+            WHERE wallet_address = ?
+              AND session_token = ?
+              AND CONCAT(max_players, ':', entry_fee_wei) NOT IN (" .
+            implode(", ", array_fill(0, count($lockedBucketKeys), "?")) .
+            ")
+        ";
+        $deleteParams = array_merge([$walletAddress, $sessionToken], array_keys($lockedBucketKeys));
+        $stmt = $pdo->prepare($deleteSql);
+        $stmt->execute($deleteParams);
+    } else {
+        $stmt = $pdo->prepare("
+            DELETE FROM player_match_preferences
+            WHERE wallet_address = ?
+              AND session_token = ?
+        ");
+        $stmt->execute([
+            $walletAddress,
+            $sessionToken
+        ]);
+    }
 
     // insert new combinations
     $insert = $pdo->prepare("
@@ -138,17 +218,18 @@ try {
             :max_players,
             :entry_fee
         )
+        ON DUPLICATE KEY UPDATE
+            max_players = VALUES(max_players),
+            entry_fee_wei = VALUES(entry_fee_wei)
     ");
 
-    foreach ($matchSizes as $size) {
-        foreach ($entryFees as $fee) {
-            $insert->execute([
-                ":wallet" => $walletAddress,
-                ":token" => $sessionToken,
-                ":max_players" => (int)$size,
-                ":entry_fee" => (string)$fee
-            ]);
-        }
+    foreach ($queueCombinations as $combination) {
+        $insert->execute([
+            ":wallet" => $walletAddress,
+            ":token" => $sessionToken,
+            ":max_players" => $combination["maxPlayers"],
+            ":entry_fee" => $combination["entryFeeWei"]
+        ]);
     }
 
     $pdo->commit();
@@ -162,9 +243,10 @@ try {
 
 echo json_encode([
     "success" => true,
-    "status" => "matchmaking_entered",
+    "status" => $shouldMatchmake ? "matchmaking_entered" : "active_bucket_locked",
     "preferences" => [
         "matchSizes" => $matchSizes,
         "entryFeesWei" => $entryFees
-    ]
+    ],
+    "blockedCombinations" => $blockedCombinations
 ]);

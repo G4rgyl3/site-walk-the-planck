@@ -5,6 +5,7 @@ const ENDPOINTS = {
     enterMatchmaking: "enter_matchmaking.php",
     leaveMatchmaking: "leave_matchmaking.php",
     confirmMatchJoin: "confirm_match_join.php",
+    deactivateMatchBucket: "deactivate_match_bucket.php",
     releaseActiveMatch: "release_active_match.php",
     heartbeat: "player_heartbeat.php",
     queueStatus: "queue_status.php",

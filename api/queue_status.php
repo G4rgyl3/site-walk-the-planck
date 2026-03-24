@@ -9,55 +9,76 @@ require_once __DIR__ . "/db.php";
 
 $allowedPlayerCounts = [2, 3, 4, 5];
 $allowedEntryFees = [
-    "500000000000000",    // 0.0005 ETH
-    "1000000000000000",   // 0.001 ETH
-    "2500000000000000",   // 0.0025 ETH
-    "5000000000000000",   // 0.005 ETH
-    "10000000000000000"   // 0.01 ETH
+    "500000000000000",
+    "1000000000000000",
+    "2500000000000000",
+    "5000000000000000",
+    "10000000000000000"
 ];
 
 $liveWindowSeconds = 30;
 
-$sql = "
+$queuedSql = "
     SELECT
         pmp.max_players,
         pmp.entry_fee_wei,
-        COUNT(*) AS ready_count
+        COUNT(DISTINCT ps.wallet_address) AS queued_count
     FROM player_sessions ps
     INNER JOIN player_match_preferences pmp
         ON pmp.wallet_address = ps.wallet_address
        AND pmp.session_token = ps.session_token
-    WHERE (
-            ps.active_match_id IS NOT NULL
-            OR (
-                ps.is_matchmaking = 1
-                AND ps.last_seen >= (NOW() - INTERVAL :live_window SECOND)
-            )
-          )
+    WHERE ps.is_matchmaking = 1
+      AND ps.last_seen >= (NOW() - INTERVAL :live_window SECOND)
     GROUP BY pmp.max_players, pmp.entry_fee_wei
 ";
 
-$stmt = $pdo->prepare($sql);
-$stmt->bindValue(":live_window", $liveWindowSeconds, PDO::PARAM_INT);
-$stmt->execute();
+$committedSql = "
+    SELECT
+        pmp.max_players,
+        pmp.entry_fee_wei,
+        COUNT(DISTINCT ps.wallet_address) AS committed_count
+    FROM player_sessions ps
+    INNER JOIN player_match_preferences pmp
+        ON pmp.wallet_address = ps.wallet_address
+    WHERE ps.active_match_id IS NOT NULL
+      AND ps.selected_match_id IS NOT NULL
+    GROUP BY pmp.max_players, pmp.entry_fee_wei
+";
 
-$rows = $stmt->fetchAll();
+$queuedStmt = $pdo->prepare($queuedSql);
+$queuedStmt->bindValue(":live_window", $liveWindowSeconds, PDO::PARAM_INT);
+$queuedStmt->execute();
+$queuedRows = $queuedStmt->fetchAll();
 
-$counts = [];
-foreach ($rows as $row) {
+$committedStmt = $pdo->prepare($committedSql);
+$committedStmt->execute();
+$committedRows = $committedStmt->fetchAll();
+
+$queuedCounts = [];
+foreach ($queuedRows as $row) {
     $key = $row["max_players"] . ":" . $row["entry_fee_wei"];
-    $counts[$key] = (int)$row["ready_count"];
+    $queuedCounts[$key] = (int)$row["queued_count"];
+}
+
+$committedCounts = [];
+foreach ($committedRows as $row) {
+    $key = $row["max_players"] . ":" . $row["entry_fee_wei"];
+    $committedCounts[$key] = (int)$row["committed_count"];
 }
 
 $queues = [];
 foreach ($allowedPlayerCounts as $maxPlayers) {
     foreach ($allowedEntryFees as $entryFeeWei) {
         $key = $maxPlayers . ":" . $entryFeeWei;
-        $readyCount = $counts[$key] ?? 0;
+        $queuedCount = $queuedCounts[$key] ?? 0;
+        $committedCount = $committedCounts[$key] ?? 0;
+        $readyCount = $queuedCount + $committedCount;
 
         $queues[] = [
             "maxPlayers" => $maxPlayers,
             "entryFeeWei" => $entryFeeWei,
+            "queuedCount" => $queuedCount,
+            "committedCount" => $committedCount,
             "readyCount" => $readyCount,
             "matchable" => $readyCount >= $maxPlayers
         ];
