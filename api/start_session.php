@@ -28,6 +28,35 @@ if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $sessionToken)) {
 }
 
 try {
+    $pdo->beginTransaction();
+
+    $existingSessionStmt = $pdo->prepare("
+        SELECT session_token, active_match_id
+        FROM player_sessions
+        WHERE wallet_address = :wallet
+        LIMIT 1
+        FOR UPDATE
+    ");
+    $existingSessionStmt->execute([
+        ":wallet" => $walletAddress
+    ]);
+
+    $existingSession = $existingSessionStmt->fetch();
+    $previousSessionToken = $existingSession["session_token"] ?? null;
+
+    if ($previousSessionToken && $previousSessionToken !== $sessionToken) {
+        $pdo->prepare("
+            UPDATE player_match_preferences
+            SET session_token = :nextSessionToken
+            WHERE wallet_address = :wallet
+              AND session_token = :previousSessionToken
+        ")->execute([
+            ":nextSessionToken" => $sessionToken,
+            ":wallet" => $walletAddress,
+            ":previousSessionToken" => $previousSessionToken
+        ]);
+    }
+
     $stmt = $pdo->prepare("
         INSERT INTO player_sessions (
             wallet_address,
@@ -56,7 +85,12 @@ try {
         ":wallet" => $walletAddress,
         ":sessionToken" => $sessionToken
     ]);
+
+    $pdo->commit();
 } catch (Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     http_response_code(500);
     echo json_encode(["error" => "Failed to start session"]);
     exit;
