@@ -6,8 +6,12 @@ import {
     subscribe as subscribeWallet
 } from "@ohlabs/js-chain/utility/wallet.js";
 import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
-import { joinPublishedLobby } from "./walk-the-planck-contract.js";
-import { hasMatchCandidate, refreshMatchCandidates } from "../../matchmaking.js";
+import {
+    claimPublishedMatch,
+    claimPublishedRefund,
+    joinPublishedLobby
+} from "./walk-the-planck-contract.js";
+import { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches } from "../../matchmaking.js";
 import { leaveQueue, refreshQueues, startPolling } from "../../queue.js";
 import { resetSessionToken } from "../../session.js";
 import {
@@ -104,6 +108,7 @@ async function updateMatchmakingUI() {
     }
 
     await refreshMatchCandidates();
+    await refreshPlayerMatches();
 }
 
 async function joinQueue() {
@@ -144,6 +149,13 @@ async function handleLeaveQueueClick() {
 }
 
 async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
+    const walletAddress = getWalletState().account;
+
+    if (!walletAddress) {
+        setStatus("Connect wallet first.");
+        return;
+    }
+
     await refreshMatchCandidates();
 
     if (!hasMatchCandidate(maxPlayers, entryFeeWei)) {
@@ -153,15 +165,72 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
 
     try {
         setStatus(`Submitting join transaction for ${maxPlayers} players at ${entryFeeWei} wei...`);
-        const tx = await joinPublishedLobby(maxPlayers, entryFeeWei);
+        const { contract, tx } = await joinPublishedLobby(maxPlayers, entryFeeWei);
         setStatus(`Transaction submitted: ${tx.hash}`);
-        await tx.wait();
-        setStatus("Join transaction confirmed on chain.");
-        await refreshMatchCandidates();
+        const receipt = await tx.wait();
+        const matchId = contract.getLobbyIdFromReceipt(receipt);
+
+        if (!matchId) {
+            setStatus("Join confirmed on chain, but the app could not read the match id from the receipt.");
+            return;
+        }
+
+        try {
+            await postJson(ENDPOINTS.confirmMatchJoin, {
+                walletAddress: walletAddress.toLowerCase(),
+                sessionToken: getSessionTokenValue(),
+                matchId,
+                maxPlayers,
+                entryFeeWei
+            });
+        } catch (syncError) {
+            console.error(syncError);
+            setStatus(`Join confirmed on chain for match #${matchId}, but DB sync failed: ${syncError.message}`);
+            await refreshPlayerMatches();
+            await refreshQueues();
+            return;
+        }
+
+        resetMatchmakingState();
+        setIsInQueue(false);
+        await updateMatchmakingUI();
+
+        setStatus(`Join confirmed on chain. Match #${matchId} is now locked in the queue bucket.`);
+        await refreshPlayerMatches();
         await refreshQueues();
     } catch (err) {
         console.error(err);
         setStatus(`Join transaction failed: ${err.message}`);
+    }
+}
+
+async function handleClaimMatchClick(matchId) {
+    try {
+        setStatus(`Submitting claim transaction for match #${matchId}...`);
+        const { tx } = await claimPublishedMatch(matchId);
+        setStatus(`Claim transaction submitted: ${tx.hash}`);
+        await tx.wait();
+        setStatus(`Claim confirmed for match #${matchId}.`);
+        await refreshPlayerMatches();
+        await refreshQueues();
+    } catch (err) {
+        console.error(err);
+        setStatus(`Claim failed: ${err.message}`);
+    }
+}
+
+async function handleClaimRefundClick(matchId) {
+    try {
+        setStatus(`Submitting refund claim for match #${matchId}...`);
+        const { tx } = await claimPublishedRefund(matchId);
+        setStatus(`Refund transaction submitted: ${tx.hash}`);
+        await tx.wait();
+        setStatus(`Refund confirmed for match #${matchId}.`);
+        await refreshPlayerMatches();
+        await refreshQueues();
+    } catch (err) {
+        console.error(err);
+        setStatus(`Refund claim failed: ${err.message}`);
     }
 }
 
@@ -237,6 +306,19 @@ function bindEvents() {
             await handleJoinMatchClick(maxPlayers, entryFeeWei);
         });
     }
+
+    document.addEventListener("click", async (event) => {
+        const claimButton = event.target.closest("[data-claim-match-id]");
+        if (claimButton) {
+            await handleClaimMatchClick(claimButton.dataset.claimMatchId);
+            return;
+        }
+
+        const refundButton = event.target.closest("[data-refund-match-id]");
+        if (refundButton) {
+            await handleClaimRefundClick(refundButton.dataset.refundMatchId);
+        }
+    });
 
 }
 

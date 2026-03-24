@@ -1,11 +1,13 @@
-import { ENDPOINTS, getJson } from "./api.js";
+import { getPlayerMatchDetails } from "./features/matchmaking/walk-the-planck-contract.js";
+import { ENDPOINTS, getJson, postJson } from "./api.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
-import { formatSelections, renderAvailableMatches, setMatchmakingState } from "./ui/render.js";
+import { formatSelections, renderAvailableMatches, renderPlayerMatches, setMatchmakingState } from "./ui/render.js";
 import {
     getAvailableMatches,
     getIsInQueue,
-    setAvailableMatches
+    setAvailableMatches,
+    setPlayerMatches
 } from "./state/app-state.js";
 
 function sortMatches(matches) {
@@ -27,6 +29,15 @@ function hasMatchCandidate(maxPlayers, entryFeeWei) {
     return getAvailableMatches().some((match) =>
         Number(match.maxPlayers) === Number(maxPlayers) &&
         String(match.entryFeeWei) === String(entryFeeWei)
+    );
+}
+
+function hasBlockingMatch(matches) {
+    return matches.some((match) =>
+        match.isClaimable ||
+        match.isRefundable ||
+        match.statusCode === 0 ||
+        match.statusCode === 1
     );
 }
 
@@ -71,4 +82,31 @@ async function refreshMatchCandidates() {
     }
 }
 
-export { hasMatchCandidate, refreshMatchCandidates }
+async function refreshPlayerMatches() {
+    const walletAddress = getWalletState().account;
+
+    if (!walletAddress) {
+        setPlayerMatches([]);
+        renderPlayerMatches([]);
+        return;
+    }
+
+    try {
+        const matches = await getPlayerMatchDetails(walletAddress.toLowerCase());
+        setPlayerMatches(matches);
+        renderPlayerMatches(matches);
+
+        if (!getIsInQueue() && !hasBlockingMatch(matches)) {
+            await postJson(ENDPOINTS.releaseActiveMatch, {
+                walletAddress: walletAddress.toLowerCase(),
+                sessionToken: getSessionToken()
+            });
+        }
+    } catch (err) {
+        console.error(err);
+        setPlayerMatches([]);
+        renderPlayerMatches([]);
+    }
+}
+
+export { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches }

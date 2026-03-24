@@ -24,6 +24,27 @@ if ($sessionToken === "") {
 try {
     $pdo->beginTransaction();
 
+    $activeMatchStmt = $pdo->prepare("
+        SELECT active_match_id
+        FROM player_sessions
+        WHERE wallet_address = :wallet
+          AND session_token = :sessionToken
+        LIMIT 1
+        FOR UPDATE
+    ");
+    $activeMatchStmt->execute([
+        ":wallet" => $walletAddress,
+        ":sessionToken" => $sessionToken
+    ]);
+
+    $existingSession = $activeMatchStmt->fetch();
+    if ($existingSession && $existingSession["active_match_id"] !== null) {
+        $pdo->rollBack();
+        http_response_code(409);
+        echo json_encode(["error" => "Player already committed to an on-chain match"]);
+        exit;
+    }
+
     $pdo->prepare("
         UPDATE player_sessions
         SET is_matchmaking = 0,
@@ -48,7 +69,9 @@ try {
     $pdo->commit();
 
 } catch (Exception $e) {
-    $pdo->rollBack();
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     http_response_code(500);
     echo json_encode(["error" => "Failed to leave matchmaking"]);
     exit;

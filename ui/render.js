@@ -13,6 +13,8 @@ import {
     matchStateDot,
     matchStateMeta,
     matchStateTitle,
+    playerMatchList,
+    playerMatchPanel,
     queueList,
     refreshQueueBtn,
     sessionBox,
@@ -49,7 +51,7 @@ function formatSelections() {
         ? entryFeesWei.map((wei) => `${fromWei(wei)} ETH`).join(", ")
         : "none";
 
-    return `Sizes: ${sizeText} · Fees: ${feeText}`;
+    return `Sizes: ${sizeText} | Fees: ${feeText}`;
 }
 
 function updateActionButtons() {
@@ -134,7 +136,7 @@ function renderQueues(queues) {
 
         return `
             <div class="queue-card">
-                <div class="queue-title">${q.maxPlayers} Players · ${fromWei(q.entryFeeWei)} ETH</div>
+                <div class="queue-title">${q.maxPlayers} Players | ${fromWei(q.entryFeeWei)} ETH</div>
                 <div class="queue-ready">Ready: ${q.readyCount} / ${q.maxPlayers}</div>
                 <div class="queue-waiting">${matchable ? "Matchable now" : "Waiting for more players"}</div>
             </div>
@@ -157,10 +159,10 @@ function renderAvailableMatches(matches) {
         <div class="available-match-card">
             <div class="available-match-info">
                 <div class="available-match-name">
-                    ${match.maxPlayers} Players · ${fromWei(match.entryFeeWei)} ETH
+                    ${match.maxPlayers} Players | ${fromWei(match.entryFeeWei)} ETH
                 </div>
                 <div class="available-match-meta">
-                    ${match.readyCount} ready · Match is available now
+                    ${match.readyCount} ready | Match is available now
                 </div>
             </div>
             <button
@@ -173,6 +175,71 @@ function renderAvailableMatches(matches) {
             </button>
         </div>
     `).join("");
+}
+
+function formatDateTime(unixSeconds) {
+    if (!unixSeconds) {
+        return "No deadline";
+    }
+
+    return new Date(unixSeconds * 1000).toLocaleString();
+}
+
+function renderPlayerMatches(matches) {
+    if (!playerMatchPanel || !playerMatchList) return;
+
+    if (!Array.isArray(matches) || matches.length === 0) {
+        playerMatchPanel.classList.add("hidden");
+        playerMatchList.innerHTML = "";
+        return;
+    }
+
+    playerMatchPanel.classList.remove("hidden");
+
+    playerMatchList.innerHTML = matches.map((match) => {
+        const playerList = match.players.length
+            ? match.players.map(shortenWalletAddress).join(", ")
+            : "Loading players...";
+
+        return `
+            <div class="available-match-card">
+                <div class="available-match-info">
+                    <div class="available-match-name">
+                        Match #${match.id} | ${match.maxPlayers} Players | ${fromWei(match.entryFeeWei)} ETH
+                    </div>
+                    <div class="available-match-meta">
+                        ${match.playerStatus} | ${match.playerCount}/${match.maxPlayers} players | ${match.statusLabel}
+                    </div>
+                    <div class="available-match-meta">
+                        Players: ${playerList}
+                    </div>
+                    <div class="available-match-meta">
+                        Pot: ${fromWei(match.totalPotWei)} ETH | Deadline: ${formatDateTime(match.deadline)}
+                    </div>
+                </div>
+                <div>
+                    ${match.isClaimable ? `
+                        <button
+                            type="button"
+                            class="btn btn-join-match"
+                            data-claim-match-id="${match.id}"
+                        >
+                            Claim
+                        </button>
+                    ` : ""}
+                    ${match.isRefundable ? `
+                        <button
+                            type="button"
+                            class="btn btn-neutral"
+                            data-refund-match-id="${match.id}"
+                        >
+                            Claim Refund
+                        </button>
+                    ` : ""}
+                </div>
+            </div>
+        `;
+    }).join("");
 }
 
 function setMatchmakingState({ searching, title, detail, meta }) {
@@ -188,6 +255,7 @@ function setMatchmakingState({ searching, title, detail, meta }) {
 export {
     formatSelections,
     renderAvailableMatches,
+    renderPlayerMatches,
     renderQueues,
     setMatchmakingState,
     setSelectorsLocked,

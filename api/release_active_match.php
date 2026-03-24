@@ -30,58 +30,45 @@ if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $sessionToken)) {
 try {
     $pdo->beginTransaction();
 
-    $activeMatchStmt = $pdo->prepare("
-        SELECT active_match_id
-        FROM player_sessions
+    $sessionUpdate = $pdo->prepare("
+        UPDATE player_sessions
+        SET is_matchmaking = 0,
+            selected_match_id = NULL,
+            active_match_id = NULL,
+            last_seen = NOW()
         WHERE wallet_address = :wallet
           AND session_token = :sessionToken
-        LIMIT 1
-        FOR UPDATE
+          AND active_match_id IS NOT NULL
     ");
-    $activeMatchStmt->execute([
+
+    $sessionUpdate->execute([
         ":wallet" => $walletAddress,
         ":sessionToken" => $sessionToken
     ]);
 
-    $existingSession = $activeMatchStmt->fetch();
-    if ($existingSession && $existingSession["active_match_id"] !== null) {
-        $pdo->commit();
-        echo json_encode([
-            "success" => true,
-            "status" => "session_retained_for_active_match"
+    if ($sessionUpdate->rowCount() > 0) {
+        $pdo->prepare("
+            DELETE FROM player_match_preferences
+            WHERE wallet_address = :wallet
+              AND session_token = :sessionToken
+        ")->execute([
+            ":wallet" => $walletAddress,
+            ":sessionToken" => $sessionToken
         ]);
-        exit;
     }
 
-    $pdo->prepare("
-        DELETE FROM player_match_preferences
-        WHERE wallet_address = :wallet
-        AND session_token = :sessionToken
-    ")->execute([
-        ":wallet" => $walletAddress,
-        ":sessionToken" => $sessionToken
-    ]);
-
-    $pdo->prepare("
-        DELETE FROM player_sessions
-        WHERE wallet_address = :wallet
-        AND session_token = :sessionToken
-    ")->execute([
-        ":wallet" => $walletAddress,
-        ":sessionToken" => $sessionToken
-    ]);
-
     $pdo->commit();
-} catch (Exception $e) {
+} catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
     }
+
     http_response_code(500);
-    echo json_encode(["error" => "Failed to end session"]);
+    echo json_encode(["error" => "Failed to release active match"]);
     exit;
 }
 
 echo json_encode([
     "success" => true,
-    "status" => "session_ended"
+    "status" => "active_match_released"
 ]);

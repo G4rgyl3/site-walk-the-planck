@@ -4,6 +4,12 @@ import { BaseContract } from "@ohlabs/js-chain/contract/base-contract.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 
 const CONTRACT_ENVIRONMENTS = ["test", "production"];
+const MATCH_STATUSES = {
+    0: "Open",
+    1: "Resolving",
+    2: "Resolved",
+    3: "Cancelled"
+};
 
 function getEthers() {
     if (!window.ethers) {
@@ -78,14 +84,182 @@ class WalkThePlanckContract extends BaseContract {
             .connect(this.provider.getSigner())
             .joinQueue(maxPlayers, entryFeeWei, { value: entryFeeWei });
     }
+
+    async claim(matchId) {
+        if (!this.contract || !this.provider) {
+            throw new Error("WalkThePlanck contract is not available.");
+        }
+
+        return this.contract.connect(this.provider.getSigner()).claim(matchId);
+    }
+
+    async claimRefund(matchId) {
+        if (!this.contract || !this.provider) {
+            throw new Error("WalkThePlanck contract is not available.");
+        }
+
+        return this.contract.connect(this.provider.getSigner()).claimRefund(matchId);
+    }
+
+    async getPlayerMatches(player) {
+        return this.contract.getPlayerMatches(player);
+    }
+
+    async getClaimableMatches(player) {
+        return this.contract.getClaimableMatches(player);
+    }
+
+    async getRefundableMatches(player) {
+        return this.contract.getRefundableMatches(player);
+    }
+
+    async getMatch(matchId) {
+        return this.contract.matches(matchId);
+    }
+
+    async getMatchPlayers(matchId) {
+        return this.contract.getMatchPlayers(matchId);
+    }
+
+    getLobbyIdFromReceipt(receipt) {
+        if (!this.contract?.interface || !Array.isArray(receipt?.logs)) {
+            return null;
+        }
+
+        for (const log of receipt.logs) {
+            try {
+                const parsedLog = this.contract.interface.parseLog(log);
+
+                if (parsedLog?.name === "PlayerJoined") {
+                    return parsedLog.args?.matchId?.toString?.() ?? null;
+                }
+            } catch (error) {
+                continue;
+            }
+        }
+
+        return null;
+    }
+}
+
+function toNumber(value) {
+    return Number(value?.toString?.() ?? value ?? 0);
+}
+
+function toStringValue(value) {
+    return value?.toString?.() ?? String(value ?? "");
+}
+
+function normalizeMatchRecord(matchId, record, players, claimableSet, refundableSet, playerAddress) {
+    const normalizedMatchId = toStringValue(matchId);
+    const normalizedStatus = toNumber(record?.status);
+    const normalizedPlayers = Array.isArray(players)
+        ? players.map((player) => player.toLowerCase())
+        : [];
+    const normalizedPlayerAddress = playerAddress.toLowerCase();
+    const loser = (record?.loser ?? "").toLowerCase();
+    const isClaimable = claimableSet.has(normalizedMatchId);
+    const isRefundable = refundableSet.has(normalizedMatchId);
+
+    let playerStatus = MATCH_STATUSES[normalizedStatus] ?? `Status ${normalizedStatus}`;
+
+    if (isClaimable) {
+        playerStatus = "Claimable";
+    } else if (isRefundable) {
+        playerStatus = "Refund available";
+    } else if (normalizedStatus === 2) {
+        playerStatus = loser && loser === normalizedPlayerAddress ? "Eliminated" : "Survived";
+    } else if (normalizedStatus === 0) {
+        playerStatus = toNumber(record?.playerCount) >= toNumber(record?.maxPlayers) ? "Ready" : "Joined";
+    }
+
+    return {
+        id: normalizedMatchId,
+        maxPlayers: toNumber(record?.maxPlayers),
+        playerCount: toNumber(record?.playerCount),
+        entryFeeWei: toStringValue(record?.entryFee),
+        totalPotWei: toStringValue(record?.totalPot),
+        deadline: toNumber(record?.deadline),
+        statusCode: normalizedStatus,
+        statusLabel: MATCH_STATUSES[normalizedStatus] ?? `Status ${normalizedStatus}`,
+        playerStatus,
+        loser,
+        loserIndex: toNumber(record?.loserIndex),
+        deathTurn: toNumber(record?.deathTurn),
+        sequenceNumber: toStringValue(record?.sequenceNumber),
+        players: normalizedPlayers,
+        isClaimable,
+        isRefundable
+    };
+}
+
+async function getPlayerMatchDetails(playerAddress) {
+    const contract = new WalkThePlanckContract();
+    const [matchIds, claimableIds, refundableIds] = await Promise.all([
+        contract.getPlayerMatches(playerAddress),
+        contract.getClaimableMatches(playerAddress),
+        contract.getRefundableMatches(playerAddress)
+    ]);
+
+    const claimableSet = new Set((claimableIds ?? []).map((value) => toStringValue(value)));
+    const refundableSet = new Set((refundableIds ?? []).map((value) => toStringValue(value)));
+    const uniqueMatchIds = [...new Set((matchIds ?? []).map((value) => toStringValue(value)))];
+
+    const matches = await Promise.all(
+        uniqueMatchIds.map(async (matchId) => {
+            const [record, players] = await Promise.all([
+                contract.getMatch(matchId),
+                contract.getMatchPlayers(matchId)
+            ]);
+
+            return normalizeMatchRecord(
+                matchId,
+                record,
+                players,
+                claimableSet,
+                refundableSet,
+                playerAddress
+            );
+        })
+    );
+
+    return matches.sort((left, right) => Number(right.id) - Number(left.id));
 }
 
 async function joinPublishedLobby(maxPlayers, entryFeeWei) {
     const contract = new WalkThePlanckContract();
-    return contract.joinQueue(maxPlayers, entryFeeWei);
+    const tx = await contract.joinQueue(maxPlayers, entryFeeWei);
+
+    return {
+        contract,
+        tx
+    };
+}
+
+async function claimPublishedMatch(matchId) {
+    const contract = new WalkThePlanckContract();
+    const tx = await contract.claim(matchId);
+
+    return {
+        contract,
+        tx
+    };
+}
+
+async function claimPublishedRefund(matchId) {
+    const contract = new WalkThePlanckContract();
+    const tx = await contract.claimRefund(matchId);
+
+    return {
+        contract,
+        tx
+    };
 }
 
 export {
+    claimPublishedMatch,
+    claimPublishedRefund,
+    getPlayerMatchDetails,
     WalkThePlanckContract,
     getPublishedGameMetadata,
     joinPublishedLobby

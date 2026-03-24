@@ -46,9 +46,9 @@ try {
         )
         ON DUPLICATE KEY UPDATE
             session_token = VALUES(session_token),
-            is_matchmaking = 0,
-            selected_match_id = NULL,
-            active_match_id = NULL,
+            is_matchmaking = IF(active_match_id IS NULL, 0, is_matchmaking),
+            selected_match_id = IF(active_match_id IS NULL, NULL, selected_match_id),
+            active_match_id = active_match_id,
             last_seen = NOW()
     ");
 

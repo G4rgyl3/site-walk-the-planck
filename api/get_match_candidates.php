@@ -41,10 +41,20 @@ $sql = "
        AND ps.session_token = pmp.session_token
     WHERE pmp_self.wallet_address = :wallet
       AND pmp_self.session_token = :sessionToken
-      AND ps_self.is_matchmaking = 1
-      AND ps_self.last_seen >= (NOW() - INTERVAL :live_window SECOND)
-      AND ps.is_matchmaking = 1
-      AND ps.last_seen >= (NOW() - INTERVAL :live_window SECOND)
+      AND (
+            ps_self.active_match_id IS NOT NULL
+            OR (
+                ps_self.is_matchmaking = 1
+                AND ps_self.last_seen >= (NOW() - INTERVAL :live_window SECOND)
+            )
+          )
+      AND (
+            ps.active_match_id IS NOT NULL
+            OR (
+                ps.is_matchmaking = 1
+                AND ps.last_seen >= (NOW() - INTERVAL :live_window SECOND)
+            )
+          )
     GROUP BY pmp_self.max_players, pmp_self.entry_fee_wei
     HAVING COUNT(*) >= pmp_self.max_players
 ";

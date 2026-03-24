@@ -27,8 +27,13 @@ $sql = "
     INNER JOIN player_match_preferences pmp
         ON pmp.wallet_address = ps.wallet_address
        AND pmp.session_token = ps.session_token
-    WHERE ps.is_matchmaking = 1
-      AND ps.last_seen >= (NOW() - INTERVAL :live_window SECOND)
+    WHERE (
+            ps.active_match_id IS NOT NULL
+            OR (
+                ps.is_matchmaking = 1
+                AND ps.last_seen >= (NOW() - INTERVAL :live_window SECOND)
+            )
+          )
     GROUP BY pmp.max_players, pmp.entry_fee_wei
 ";
 

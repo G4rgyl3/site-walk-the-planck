@@ -1,14 +1,16 @@
 import { ENDPOINTS, getJson, postJson } from "./api.js";
 import { getSessionToken } from "./session.js";
 import { stopHeartbeat } from "./heartbeat.js";
-import { refreshMatchCandidates } from "./matchmaking.js";
+import { refreshMatchCandidates, refreshPlayerMatches } from "./matchmaking.js";
 import { setQueues } from "./state/app-state.js";
 import { renderQueues, setStatus } from "./ui/render.js";
 
 let pollInterval = null;
 const POLL_MS = 5000;
 
-async function leaveQueue(walletAddress, sessionToken = getSessionToken()) {
+async function leaveQueue(walletAddress, sessionToken = getSessionToken(), options = {}) {
+    const { silent = false } = options;
+
     if (!walletAddress) return;
 
     try {
@@ -18,11 +20,16 @@ async function leaveQueue(walletAddress, sessionToken = getSessionToken()) {
         });
 
         stopHeartbeat();
-        setStatus("Left matchmaking.");
+        if (!silent) {
+            setStatus("Left matchmaking.");
+        }
         await refreshQueues();
     } catch (err) {
         console.error(err);
-        setStatus(`Leave queue failed: ${err.message}`);
+        if (!silent) {
+            setStatus(`Leave queue failed: ${err.message}`);
+        }
+        throw err;
     }
 }
 
@@ -33,6 +40,7 @@ async function refreshQueues() {
         setQueues(queues);
         renderQueues(queues);
         await refreshMatchCandidates();
+        await refreshPlayerMatches();
     } catch (err) {
         console.error(err);
         setStatus(`Failed to load queue status: ${err.message}`);

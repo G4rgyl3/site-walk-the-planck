@@ -6,7 +6,8 @@ const state = {
     selectedMatchSizes: [],
     selectedEntryFeesWei: [],
     queues: [],
-    availableMatches: []
+    availableMatches: [],
+    playerMatches: []
 };
 
 const listeners = new Set();
@@ -21,7 +22,8 @@ function getState() {
         selectedMatchSizes: [...state.selectedMatchSizes],
         selectedEntryFeesWei: [...state.selectedEntryFeesWei],
         queues: [...state.queues],
-        availableMatches: [...state.availableMatches]
+        availableMatches: [...state.availableMatches],
+        playerMatches: [...state.playerMatches]
     };
 }
 
@@ -83,15 +85,26 @@ function getAvailableMatches() {
     return [...state.availableMatches];
 }
 
+function setPlayerMatches(matches) {
+    state.playerMatches = Array.isArray(matches) ? [...matches] : [];
+    notify();
+}
+
+function getPlayerMatches() {
+    return [...state.playerMatches];
+}
+
 function resetMatchmakingState() {
     state.isInQueue = false;
     state.availableMatches = [];
+    state.playerMatches = [];
     notify();
 }
 
 export {
     getAvailableMatches,
     getIsInQueue,
+    getPlayerMatches,
     getQueues,
     getSelectedPreferences,
     getSessionTokenValue,
@@ -101,6 +114,7 @@ export {
     resetMatchmakingState,
     setAvailableMatches,
     setIsInQueue,
+    setPlayerMatches,
     setQueues,
     setSelectedPreferences,
     subscribe

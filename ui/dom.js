@@ -12,6 +12,8 @@ const matchStateDetail = document.getElementById("matchStateDetail");
 const matchStateMeta = document.getElementById("matchStateMeta");
 const availableMatchPanel = document.getElementById("availableMatchPanel");
 const availableMatchList = document.getElementById("availableMatchList");
+const playerMatchList = document.getElementById("playerMatchList");
+const playerMatchPanel = document.getElementById("playerMatchPanel");
 const matchSizeSelector = document.getElementById("matchSizeSelector");
 const entryFeeSelector = document.getElementById("entryFeeSelector");
 
@@ -28,6 +30,8 @@ export {
     matchStateDot,
     matchStateMeta,
     matchStateTitle,
+    playerMatchList,
+    playerMatchPanel,
     queueList,
     refreshQueueBtn,
     sessionBox,

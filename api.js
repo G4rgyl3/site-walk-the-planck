@@ -4,6 +4,8 @@ const ENDPOINTS = {
     endSession: "end_session.php",
     enterMatchmaking: "enter_matchmaking.php",
     leaveMatchmaking: "leave_matchmaking.php",
+    confirmMatchJoin: "confirm_match_join.php",
+    releaseActiveMatch: "release_active_match.php",
     heartbeat: "player_heartbeat.php",
     queueStatus: "queue_status.php",
     matchCandidates : "get_match_candidates.php"

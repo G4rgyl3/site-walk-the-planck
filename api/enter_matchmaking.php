@@ -64,6 +64,25 @@ if (count($matchSizes) === 0 || count($entryFees) === 0) {
 try {
     $pdo->beginTransaction();
 
+    $activeMatchStmt = $pdo->prepare("
+        SELECT active_match_id
+        FROM player_sessions
+        WHERE wallet_address = :wallet
+        LIMIT 1
+        FOR UPDATE
+    ");
+    $activeMatchStmt->execute([
+        ":wallet" => $walletAddress
+    ]);
+
+    $existingSession = $activeMatchStmt->fetch();
+    if ($existingSession && $existingSession["active_match_id"] !== null) {
+        $pdo->rollBack();
+        http_response_code(409);
+        echo json_encode(["error" => "Player already has an active on-chain match"]);
+        exit;
+    }
+
     // upsert session
     $sql = "
        INSERT INTO player_sessions (
@@ -85,6 +104,7 @@ try {
             session_token = VALUES(session_token),
             is_matchmaking = 1,
             selected_match_id = NULL,
+            active_match_id = NULL,
             last_seen = NOW();
     ";
 

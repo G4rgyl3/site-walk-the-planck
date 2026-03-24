@@ -9,9 +9,10 @@
       "imports": {
         "@ohlabs/js-core/": "https://cdn.jsdelivr.net/npm/@ohlabs/js-core@3.0.1/",
         "@ohlabs/js-chain/": "https://cdn.jsdelivr.net/npm/@ohlabs/js-chain@1.1.0/",
-        "@ohlabs/configuration/": "https://cdn.jsdelivr.net/npm/@ohlabs/configuration@1.2.1/",
-        "@ohlabs/configuration/chain-slugs": "https://cdn.jsdelivr.net/npm/@ohlabs/configuration@1.2.1/chain-slugs.js",
-        "@ohlabs/configuration/contract-index.mjs": "https://cdn.jsdelivr.net/npm/@ohlabs/configuration@1.2.1/contract-index.mjs"
+        "@ohlabs/configuration/": "https://cdn.jsdelivr.net/npm/@ohlabs/configuration@1.4.1/",
+        "@ohlabs/configuration/chain.js": "https://cdn.jsdelivr.net/npm/@ohlabs/configuration@1.4.1/chains.mjs",
+        "@ohlabs/configuration/chain-slugs": "https://cdn.jsdelivr.net/npm/@ohlabs/configuration@1.4.1/chain-slugs.mjs",
+        "@ohlabs/configuration/contract-index.mjs": "https://cdn.jsdelivr.net/npm/@ohlabs/configuration@1.4.1/contract-index.mjs"
       }
     }
   </script>
@@ -126,6 +127,18 @@
           </div>
 
           <div class="available-match-list" id="availableMatchList"></div>
+        </div>
+
+        <div class="available-match-panel hidden" id="playerMatchPanel">
+          <div class="available-match-header">
+            <div class="available-match-badge">On-Chain</div>
+            <div class="available-match-title">Your matches</div>
+            <div class="available-match-subtitle" id="playerMatchSubtitle">
+              Matches connected to this wallet, including claim and refund status.
+            </div>
+          </div>
+
+          <div class="available-match-list" id="playerMatchList"></div>
         </div>
 
         <div class="queue-panel-header" style="margin-top: 18px;">
