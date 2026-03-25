@@ -31,11 +31,10 @@ try {
     $pdo->beginTransaction();
 
     $activeMatchStmt = $pdo->prepare("
-        SELECT active_match_id
-        FROM player_sessions
+        SELECT COUNT(*) AS active_match_count
+        FROM player_session_matches
         WHERE wallet_address = :wallet
           AND session_token = :sessionToken
-        LIMIT 1
         FOR UPDATE
     ");
     $activeMatchStmt->execute([
@@ -44,11 +43,11 @@ try {
     ]);
 
     $existingSession = $activeMatchStmt->fetch();
-    if ($existingSession && $existingSession["active_match_id"] !== null) {
+    if ($existingSession && (int)$existingSession["active_match_count"] > 0) {
         $pdo->commit();
         echo json_encode([
             "success" => true,
-            "status" => "session_retained_for_active_match"
+            "status" => "session_retained_for_active_matches"
         ]);
         exit;
     }

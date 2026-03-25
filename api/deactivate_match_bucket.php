@@ -39,13 +39,11 @@ try {
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare("
-        UPDATE player_sessions
-        SET selected_match_id = NULL,
-            last_seen = NOW()
+        DELETE FROM player_session_matches
         WHERE wallet_address = :wallet
           AND session_token = :sessionToken
-          AND active_match_id IS NOT NULL
-          AND selected_match_id IS NOT NULL
+          AND max_players = :maxPlayers
+          AND entry_fee_wei = :entryFeeWei
     ");
 
     $stmt->execute([

@@ -63,8 +63,6 @@ try {
     $sessionUpdate = $pdo->prepare("
         UPDATE player_sessions
         SET is_matchmaking = 0,
-            selected_match_id = :matchId,
-            active_match_id = :matchId,
             last_seen = NOW()
         WHERE wallet_address = :wallet
           AND session_token = :sessionToken
@@ -81,13 +79,41 @@ try {
     }
 
     $pdo->prepare("
+        INSERT INTO player_session_matches (
+            wallet_address,
+            session_token,
+            match_id,
+            max_players,
+            entry_fee_wei,
+            state
+        ) VALUES (
+            :wallet,
+            :sessionToken,
+            :matchId,
+            :maxPlayers,
+            :entryFeeWei,
+            'active'
+        )
+        ON DUPLICATE KEY UPDATE
+            session_token = VALUES(session_token),
+            max_players = VALUES(max_players),
+            entry_fee_wei = VALUES(entry_fee_wei),
+            state = VALUES(state),
+            updated_at = CURRENT_TIMESTAMP
+    ")->execute([
+        ":wallet" => $walletAddress,
+        ":sessionToken" => $sessionToken,
+        ":matchId" => $matchId,
+        ":maxPlayers" => $maxPlayers,
+        ":entryFeeWei" => $entryFeeWei
+    ]);
+
+    $pdo->prepare("
         DELETE FROM player_match_preferences
         WHERE wallet_address = :wallet
           AND session_token = :sessionToken
-          AND NOT (
-              max_players = :maxPlayers
-              AND entry_fee_wei = :entryFeeWei
-          )
+          AND max_players = :maxPlayers
+          AND entry_fee_wei = :entryFeeWei
     ")->execute([
         ":wallet" => $walletAddress,
         ":sessionToken" => $sessionToken,
@@ -114,7 +140,7 @@ try {
         ":wallet" => $walletAddress,
         ":sessionToken" => $sessionToken,
         ":maxPlayers" => $maxPlayers,
-        ":entryFeeWei" => $entryFeeWei
+            ":entryFeeWei" => $entryFeeWei
     ]);
 
     $pdo->commit();

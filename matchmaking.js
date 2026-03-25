@@ -11,6 +11,14 @@ import {
     setPlayerMatches
 } from "./state/app-state.js";
 
+function isExpiredOpenMatch(match) {
+    if (!match || Number(match.statusCode) !== 0 || !match.deadline) {
+        return false;
+    }
+
+    return (match.deadline * 1000) <= Date.now();
+}
+
 function sortMatches(matches) {
     return [...matches].sort((left, right) => {
         if (left.maxPlayers !== right.maxPlayers) {
@@ -37,7 +45,7 @@ function hasBlockingMatch(matches) {
     return matches.some((match) =>
         match.isClaimable ||
         match.isRefundable ||
-        match.statusCode === 0 ||
+        (match.statusCode === 0 && !isExpiredOpenMatch(match)) ||
         match.statusCode === 1
     );
 }
@@ -45,6 +53,7 @@ function hasBlockingMatch(matches) {
 function hasQueueCountableMatch(matches) {
     return matches.some((match) =>
         match.statusCode === 0 &&
+        !isExpiredOpenMatch(match) &&
         Number(match.playerCount) < Number(match.maxPlayers)
     );
 }
@@ -54,6 +63,7 @@ function getDeactivatableBuckets(matches) {
 
     matches.forEach((match) => {
         const shouldDeactivate =
+            isExpiredOpenMatch(match) ||
             (match.statusCode === 0 && Number(match.playerCount) >= Number(match.maxPlayers)) ||
             match.statusCode === 1 ||
             match.isClaimable ||

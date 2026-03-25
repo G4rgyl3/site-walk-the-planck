@@ -34,15 +34,9 @@ $selfSql = "
     WHERE pmp_self.wallet_address = :wallet
       AND pmp_self.session_token = :sessionToken
       AND (
-            (
-                ps_self.session_token = pmp_self.session_token
-                AND ps_self.active_match_id IS NOT NULL
-            )
-            OR (
-                ps_self.session_token = pmp_self.session_token
-                AND ps_self.is_matchmaking = 1
-                AND ps_self.last_seen >= (NOW() - INTERVAL :live_window SECOND)
-            )
+            ps_self.session_token = pmp_self.session_token
+            AND ps_self.is_matchmaking = 1
+            AND ps_self.last_seen >= (NOW() - INTERVAL :live_window SECOND)
           )
     GROUP BY pmp_self.max_players, pmp_self.entry_fee_wei
 ";
@@ -63,15 +57,12 @@ $queuedSql = "
 
 $committedSql = "
     SELECT
-        pmp.max_players,
-        pmp.entry_fee_wei,
-        COUNT(DISTINCT ps.wallet_address) AS committed_count
-    FROM player_sessions ps
-    INNER JOIN player_match_preferences pmp
-        ON pmp.wallet_address = ps.wallet_address
-    WHERE ps.active_match_id IS NOT NULL
-      AND ps.selected_match_id IS NOT NULL
-    GROUP BY pmp.max_players, pmp.entry_fee_wei
+        psm.max_players,
+        psm.entry_fee_wei,
+        COUNT(DISTINCT psm.wallet_address) AS committed_count
+    FROM player_session_matches psm
+    WHERE psm.state NOT IN ('resolved', 'refunded', 'cancelled')
+    GROUP BY psm.max_players, psm.entry_fee_wei
 ";
 
 $selfStmt = $pdo->prepare($selfSql);

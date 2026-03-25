@@ -34,15 +34,12 @@ $queuedSql = "
 
 $committedSql = "
     SELECT
-        pmp.max_players,
-        pmp.entry_fee_wei,
-        COUNT(DISTINCT ps.wallet_address) AS committed_count
-    FROM player_sessions ps
-    INNER JOIN player_match_preferences pmp
-        ON pmp.wallet_address = ps.wallet_address
-    WHERE ps.active_match_id IS NOT NULL
-      AND ps.selected_match_id IS NOT NULL
-    GROUP BY pmp.max_players, pmp.entry_fee_wei
+        psm.max_players,
+        psm.entry_fee_wei,
+        COUNT(DISTINCT psm.wallet_address) AS committed_count
+    FROM player_session_matches psm
+    WHERE psm.state NOT IN ('resolved', 'refunded', 'cancelled')
+    GROUP BY psm.max_players, psm.entry_fee_wei
 ";
 
 $queuedStmt = $pdo->prepare($queuedSql);

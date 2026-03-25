@@ -81,7 +81,7 @@ try {
     $pdo->beginTransaction();
 
     $activeMatchStmt = $pdo->prepare("
-        SELECT session_token, active_match_id
+        SELECT session_token
         FROM player_sessions
         WHERE wallet_address = :wallet
         LIMIT 1
@@ -93,7 +93,6 @@ try {
 
     $existingSession = $activeMatchStmt->fetch();
     $previousSessionToken = $existingSession["session_token"] ?? null;
-    $hasActiveMatch = $existingSession && $existingSession["active_match_id"] !== null;
 
     if ($previousSessionToken && $previousSessionToken !== $sessionToken) {
         $pdo->prepare("
@@ -106,25 +105,57 @@ try {
             ":wallet" => $walletAddress,
             ":previousSessionToken" => $previousSessionToken
         ]);
+
+        $pdo->prepare("
+            UPDATE player_session_matches
+            SET session_token = :nextSessionToken
+            WHERE wallet_address = :wallet
+              AND session_token = :previousSessionToken
+        ")->execute([
+            ":nextSessionToken" => $sessionToken,
+            ":wallet" => $walletAddress,
+            ":previousSessionToken" => $previousSessionToken
+        ]);
     }
 
     $lockedBucketKeys = $blockedBucketKeys;
-    if ($hasActiveMatch) {
-        $lockedBucketsStmt = $pdo->prepare("
-            SELECT max_players, entry_fee_wei
-            FROM player_match_preferences
-            WHERE wallet_address = :wallet
-              AND session_token = :sessionToken
-        ");
-        $lockedBucketsStmt->execute([
-            ":wallet" => $walletAddress,
-            ":sessionToken" => $sessionToken
-        ]);
+    $lockedBucketsStmt = $pdo->prepare("
+        SELECT max_players, entry_fee_wei
+        FROM player_session_matches
+        WHERE wallet_address = :wallet
+          AND session_token = :sessionToken
+          AND state NOT IN ('resolved', 'refunded', 'cancelled')
+    ");
+    $lockedBucketsStmt->execute([
+        ":wallet" => $walletAddress,
+        ":sessionToken" => $sessionToken
+    ]);
 
-        foreach ($lockedBucketsStmt->fetchAll() as $lockedBucket) {
-            $key = ((int)$lockedBucket["max_players"]) . ":" . (string)$lockedBucket["entry_fee_wei"];
-            $lockedBucketKeys[$key] = true;
-        }
+    foreach ($lockedBucketsStmt->fetchAll() as $lockedBucket) {
+        $key = ((int)$lockedBucket["max_players"]) . ":" . (string)$lockedBucket["entry_fee_wei"];
+        $lockedBucketKeys[$key] = true;
+    }
+
+    if (count($lockedBucketKeys) > 0) {
+        $lockedBucketsStmt = $pdo->prepare("
+            DELETE FROM player_match_preferences
+            WHERE wallet_address = ?
+              AND session_token = ?
+              AND CONCAT(max_players, ':', entry_fee_wei) NOT IN (" .
+            implode(", ", array_fill(0, count($lockedBucketKeys), "?")) .
+            ")
+        ");
+        $deleteParams = array_merge([$walletAddress, $sessionToken], array_keys($lockedBucketKeys));
+        $lockedBucketsStmt->execute($deleteParams);
+    } else {
+        $pdo->prepare("
+            DELETE FROM player_match_preferences
+            WHERE wallet_address = ?
+              AND session_token = ?
+        ")->execute([
+            $walletAddress,
+            $sessionToken
+        ]);
     }
 
     $queueCombinations = [];
@@ -155,22 +186,16 @@ try {
             wallet_address,
             session_token,
             is_matchmaking,
-            selected_match_id,
-            active_match_id,
             last_seen
         ) VALUES (
             :wallet,
             :sessionToken,
             :isMatchmaking,
-            NULL,
-            NULL,
             NOW()
         )
         ON DUPLICATE KEY UPDATE
             session_token = VALUES(session_token),
             is_matchmaking = VALUES(is_matchmaking),
-            selected_match_id = IF(active_match_id IS NULL, NULL, selected_match_id),
-            active_match_id = active_match_id,
             last_seen = NOW();
     ";
 
@@ -180,30 +205,6 @@ try {
         ":sessionToken" => $sessionToken,
         ":isMatchmaking" => $shouldMatchmake
     ]);
-
-    if (count($lockedBucketKeys) > 0) {
-        $deleteSql = "
-            DELETE FROM player_match_preferences
-            WHERE wallet_address = ?
-              AND session_token = ?
-              AND CONCAT(max_players, ':', entry_fee_wei) NOT IN (" .
-            implode(", ", array_fill(0, count($lockedBucketKeys), "?")) .
-            ")
-        ";
-        $deleteParams = array_merge([$walletAddress, $sessionToken], array_keys($lockedBucketKeys));
-        $stmt = $pdo->prepare($deleteSql);
-        $stmt->execute($deleteParams);
-    } else {
-        $stmt = $pdo->prepare("
-            DELETE FROM player_match_preferences
-            WHERE wallet_address = ?
-              AND session_token = ?
-        ");
-        $stmt->execute([
-            $walletAddress,
-            $sessionToken
-        ]);
-    }
 
     // insert new combinations
     $insert = $pdo->prepare("

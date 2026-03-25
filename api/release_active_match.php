@@ -33,12 +33,9 @@ try {
     $sessionUpdate = $pdo->prepare("
         UPDATE player_sessions
         SET is_matchmaking = 0,
-            selected_match_id = NULL,
-            active_match_id = NULL,
             last_seen = NOW()
         WHERE wallet_address = :wallet
           AND session_token = :sessionToken
-          AND active_match_id IS NOT NULL
     ");
 
     $sessionUpdate->execute([
@@ -46,16 +43,24 @@ try {
         ":sessionToken" => $sessionToken
     ]);
 
-    if ($sessionUpdate->rowCount() > 0) {
-        $pdo->prepare("
-            DELETE FROM player_match_preferences
-            WHERE wallet_address = :wallet
-              AND session_token = :sessionToken
-        ")->execute([
-            ":wallet" => $walletAddress,
-            ":sessionToken" => $sessionToken
-        ]);
-    }
+    $deletedMatchesStmt = $pdo->prepare("
+        DELETE FROM player_session_matches
+        WHERE wallet_address = :wallet
+          AND session_token = :sessionToken
+    ");
+    $deletedMatchesStmt->execute([
+        ":wallet" => $walletAddress,
+        ":sessionToken" => $sessionToken
+    ]);
+
+    $pdo->prepare("
+        DELETE FROM player_match_preferences
+        WHERE wallet_address = :wallet
+          AND session_token = :sessionToken
+    ")->execute([
+        ":wallet" => $walletAddress,
+        ":sessionToken" => $sessionToken
+    ]);
 
     $pdo->commit();
 } catch (Throwable $e) {
@@ -70,5 +75,5 @@ try {
 
 echo json_encode([
     "success" => true,
-    "status" => "active_match_released"
+    "status" => "active_matches_released"
 ]);

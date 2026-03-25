@@ -31,7 +31,7 @@ try {
     $pdo->beginTransaction();
 
     $existingSessionStmt = $pdo->prepare("
-        SELECT session_token, active_match_id
+        SELECT session_token
         FROM player_sessions
         WHERE wallet_address = :wallet
         LIMIT 1
@@ -55,6 +55,17 @@ try {
             ":wallet" => $walletAddress,
             ":previousSessionToken" => $previousSessionToken
         ]);
+
+        $pdo->prepare("
+            UPDATE player_session_matches
+            SET session_token = :nextSessionToken
+            WHERE wallet_address = :wallet
+              AND session_token = :previousSessionToken
+        ")->execute([
+            ":nextSessionToken" => $sessionToken,
+            ":wallet" => $walletAddress,
+            ":previousSessionToken" => $previousSessionToken
+        ]);
     }
 
     $stmt = $pdo->prepare("
@@ -62,22 +73,16 @@ try {
             wallet_address,
             session_token,
             is_matchmaking,
-            selected_match_id,
-            active_match_id,
             last_seen
         ) VALUES (
             :wallet,
             :sessionToken,
             0,
-            NULL,
-            NULL,
             NOW()
         )
         ON DUPLICATE KEY UPDATE
             session_token = VALUES(session_token),
-            is_matchmaking = IF(active_match_id IS NULL, 0, is_matchmaking),
-            selected_match_id = IF(active_match_id IS NULL, NULL, selected_match_id),
-            active_match_id = active_match_id,
+            is_matchmaking = is_matchmaking,
             last_seen = NOW()
     ");
 
