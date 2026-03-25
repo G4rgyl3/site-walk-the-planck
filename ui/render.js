@@ -18,6 +18,7 @@ import {
     queueList,
     refreshQueueBtn,
     sessionBox,
+    toastStack,
     walletBox
 } from "./dom.js";
 import {
@@ -30,6 +31,48 @@ function setStatus(message) {
     if (appStatus) {
         appStatus.textContent = message;
     }
+}
+
+const TOAST_DEFAULT_DURATION = 4200;
+let toastSequence = 0;
+
+function showToast(message, options = {}) {
+    if (!toastStack || !message) return;
+
+    const variant = options.variant || "error";
+    const duration = Number(options.duration) > 0 ? Number(options.duration) : TOAST_DEFAULT_DURATION;
+    const toastId = `toast-${Date.now()}-${toastSequence++}`;
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${variant}`;
+    toast.dataset.toastId = toastId;
+    toast.setAttribute("role", variant === "error" ? "alert" : "status");
+
+    const messageEl = document.createElement("div");
+    messageEl.className = "toast-message";
+    messageEl.textContent = message;
+
+    const lifeEl = document.createElement("div");
+    lifeEl.className = "toast-life";
+    lifeEl.style.setProperty("--toast-duration", `${duration}ms`);
+
+    toast.append(messageEl, lifeEl);
+    toastStack.append(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.add("is-visible");
+        lifeEl.classList.add("is-running");
+    });
+
+    const removeToast = () => {
+        toast.classList.remove("is-visible");
+        window.setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 240);
+    };
+
+    window.setTimeout(removeToast, duration);
 }
 
 function shortenWalletAddress(walletAddress) {
@@ -264,6 +307,9 @@ export {
     setMatchmakingState,
     setSelectorsLocked,
     setStatus,
+    showToast,
     updateActionButtons,
     updateWalletUI
 };
+
+window.getWalletState = getWalletState;

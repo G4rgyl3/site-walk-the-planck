@@ -50,12 +50,29 @@ function hasQueueCountableMatch(matches) {
 }
 
 function getDeactivatableBuckets(matches) {
-    return matches.filter((match) =>
-        (match.statusCode === 0 && Number(match.playerCount) >= Number(match.maxPlayers)) ||
-        match.statusCode === 1 ||
-        match.isClaimable ||
-        match.isRefundable
-    );
+    const buckets = new Map();
+
+    matches.forEach((match) => {
+        const shouldDeactivate =
+            (match.statusCode === 0 && Number(match.playerCount) >= Number(match.maxPlayers)) ||
+            match.statusCode === 1 ||
+            match.isClaimable ||
+            match.isRefundable;
+
+        if (!shouldDeactivate) {
+            return;
+        }
+
+        const key = `${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`;
+        if (!buckets.has(key)) {
+            buckets.set(key, {
+                maxPlayers: Number(match.maxPlayers),
+                entryFeeWei: String(match.entryFeeWei)
+            });
+        }
+    });
+
+    return [...buckets.values()];
 }
 
 function getBlockedBucketKeys(matches = getPlayerMatches()) {
@@ -124,22 +141,22 @@ async function refreshPlayerMatches() {
         setPlayerMatches(matches);
         renderPlayerMatches(matches);
 
+        const bucketsToDeactivate = getDeactivatableBuckets(matches);
+        for (const bucket of bucketsToDeactivate) {
+            await postJson(ENDPOINTS.deactivateMatchBucket, {
+                walletAddress: walletAddress.toLowerCase(),
+                sessionToken: getSessionToken(),
+                maxPlayers: bucket.maxPlayers,
+                entryFeeWei: bucket.entryFeeWei
+            });
+        }
+
         if (!getIsInQueue()) {
             if (hasQueueCountableMatch(matches)) {
                 return;
             }
 
             if (hasBlockingMatch(matches)) {
-                const bucketsToDeactivate = getDeactivatableBuckets(matches);
-
-                for (const match of bucketsToDeactivate) {
-                    await postJson(ENDPOINTS.deactivateMatchBucket, {
-                        walletAddress: walletAddress.toLowerCase(),
-                        sessionToken: getSessionToken(),
-                        maxPlayers: Number(match.maxPlayers),
-                        entryFeeWei: String(match.entryFeeWei)
-                    });
-                }
                 return;
             }
 

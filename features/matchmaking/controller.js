@@ -9,6 +9,7 @@ import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
 import {
     claimPublishedMatch,
     claimPublishedRefund,
+    decodeContractError,
     joinPublishedLobby
 } from "./walk-the-planck-contract.js";
 import { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches } from "../../matchmaking.js";
@@ -37,11 +38,38 @@ import {
     setMatchmakingState,
     setSelectorsLocked,
     setStatus,
+    showToast,
     updateWalletUI
 } from "../../ui/render.js";
 
 let unsubscribeWallet = null;
 let lastWalletAccount = null;
+
+function getWalletActionErrorMessage(err) {
+    const contractError = decodeContractError(err);
+
+    if (contractError?.name === "MatchNotOpen") {
+        return "That match is no longer open on chain. Refresh and choose another match.";
+    }
+
+    if (contractError?.name === "AlreadyJoined") {
+        return "This wallet already joined that match.";
+    }
+
+    if (contractError?.name === "IncorrectEthAmount") {
+        return "The entry fee no longer matches this match. Refresh and try again.";
+    }
+
+    if (err?.code === 4001) {
+        return "The request was canceled in your wallet.";
+    }
+
+    if (err?.code === -32002) {
+        return "A wallet request is already pending. Please open your wallet and respond there.";
+    }
+
+    return "Please make sure your wallet is signed in and unlocked, then try again.";
+}
 
 function hasBlockingMatch(matches = getPlayerMatches()) {
     return matches.some((match) =>
@@ -257,6 +285,10 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
     } catch (err) {
         console.error(err);
         setStatus(`Join transaction failed: ${err.message}`);
+        if (decodeContractError(err)?.name === "MatchNotOpen") {
+            await refreshMatchCandidates();
+        }
+        showToast(getWalletActionErrorMessage(err));
     }
 }
 
@@ -272,6 +304,7 @@ async function handleClaimMatchClick(matchId) {
     } catch (err) {
         console.error(err);
         setStatus(`Claim failed: ${err.message}`);
+        showToast(getWalletActionErrorMessage(err));
     }
 }
 
@@ -287,6 +320,7 @@ async function handleClaimRefundClick(matchId) {
     } catch (err) {
         console.error(err);
         setStatus(`Refund claim failed: ${err.message}`);
+        showToast(getWalletActionErrorMessage(err));
     }
 }
 

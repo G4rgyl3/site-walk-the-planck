@@ -16,6 +16,7 @@ const playerMatchList = document.getElementById("playerMatchList");
 const playerMatchPanel = document.getElementById("playerMatchPanel");
 const matchSizeSelector = document.getElementById("matchSizeSelector");
 const entryFeeSelector = document.getElementById("entryFeeSelector");
+const toastStack = document.getElementById("toastStack");
 
 export {
     appStatus,
@@ -35,5 +36,6 @@ export {
     queueList,
     refreshQueueBtn,
     sessionBox,
+    toastStack,
     walletBox
 };

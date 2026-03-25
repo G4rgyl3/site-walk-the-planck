@@ -69,6 +69,44 @@ function getPublishedGameMetadata() {
     throw new Error(`No published WalkThePlanck deployment found for chain ${currentChainId}.`);
 }
 
+function getErrorData(err) {
+    return (
+        err?.data?.data ??
+        err?.data?.originalError?.data ??
+        err?.error?.data?.data ??
+        err?.error?.data?.originalError?.data ??
+        err?.error?.data ??
+        err?.data ??
+        null
+    );
+}
+
+function decodeContractError(err, metadata = null) {
+    const errorData = getErrorData(err);
+
+    if (typeof errorData !== "string" || !errorData.startsWith("0x")) {
+        return null;
+    }
+
+    try {
+        const resolvedMetadata = metadata ?? getPublishedGameMetadata();
+        const contractInterface = new getEthers().utils.Interface(resolvedMetadata.abi);
+        const parsed = contractInterface.parseError(errorData);
+
+        if (!parsed) {
+            return null;
+        }
+
+        return {
+            name: parsed.name,
+            signature: parsed.signature,
+            args: parsed.args
+        };
+    } catch (error) {
+        return null;
+    }
+}
+
 class WalkThePlanckContract extends BaseContract {
     constructor(metadata = getPublishedGameMetadata()) {
         super(metadata.address, metadata.abi);
@@ -259,6 +297,7 @@ async function claimPublishedRefund(matchId) {
 export {
     claimPublishedMatch,
     claimPublishedRefund,
+    decodeContractError,
     getPlayerMatchDetails,
     WalkThePlanckContract,
     getPublishedGameMetadata,
