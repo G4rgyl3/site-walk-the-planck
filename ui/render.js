@@ -1,5 +1,6 @@
 import { fromWei } from "@ohlabs/js-chain/utility/ethers.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
+import { hasPlaybackForMatch } from "../features/playback/library.js";
 import {
     availableMatchList,
     availableMatchPanel,
@@ -291,6 +292,15 @@ function renderPlayerMatches(matches) {
                             data-refund-match-id="${match.id}"
                         >
                             Claim Refund
+                        </button>
+                    ` : ""}
+                    ${hasPlaybackForMatch(match.id) ? `
+                        <button
+                            type="button"
+                            class="btn btn-neutral"
+                            data-open-playback-match-id="${match.id}"
+                        >
+                            Watch Replay
                         </button>
                     ` : ""}
                 </div>

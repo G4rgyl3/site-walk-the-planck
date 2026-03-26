@@ -141,6 +141,41 @@
           <div class="available-match-list" id="playerMatchList"></div>
         </div>
 
+        <div class="playback-panel" id="playbackPanel">
+          <div class="playback-header">
+            <div class="available-match-badge">Replay Bay</div>
+            <div class="available-match-title">Match Playback</div>
+            <div class="available-match-subtitle">
+              Review recorded clips from finished or featured matches.
+            </div>
+          </div>
+
+          <div class="playback-empty" id="playbackEmpty">
+            No playback clips loaded yet. Add match entries in <code>features/playback/library.js</code>.
+          </div>
+
+          <div class="playback-shell hidden" id="playbackShell">
+            <div class="playback-stage">
+              <video class="playback-video" id="playbackVideo" controls playsinline preload="metadata"></video>
+              <div class="playback-stage-body">
+                <div class="playback-stage-title" id="playbackStageTitle">Playback clip</div>
+                <div class="playback-stage-summary" id="playbackStageSummary">
+                  Select a clip to review the match flow.
+                </div>
+                <div class="playback-stage-actions">
+                  <button type="button" class="btn btn-neutral playback-mode-btn" id="playbackAutoBtn">
+                    Return To Auto Mode
+                  </button>
+                </div>
+                <div class="playback-stage-meta" id="playbackClipMeta"></div>
+                <div class="playback-stage-note" id="playbackClipNote"></div>
+              </div>
+            </div>
+
+            <div class="playback-playlist" id="playbackPlaylist"></div>
+          </div>
+        </div>
+
         <div class="queue-panel-header" style="margin-top: 18px;">
           <h3 class="panel-title" style="font-size: 18px; margin-bottom: 8px;">Live Buckets</h3>
           <p class="panel-subtitle" style="margin-bottom: 0;">

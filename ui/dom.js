@@ -14,6 +14,16 @@ const availableMatchPanel = document.getElementById("availableMatchPanel");
 const availableMatchList = document.getElementById("availableMatchList");
 const playerMatchList = document.getElementById("playerMatchList");
 const playerMatchPanel = document.getElementById("playerMatchPanel");
+const playbackPanel = document.getElementById("playbackPanel");
+const playbackEmpty = document.getElementById("playbackEmpty");
+const playbackShell = document.getElementById("playbackShell");
+const playbackVideo = document.getElementById("playbackVideo");
+const playbackStageTitle = document.getElementById("playbackStageTitle");
+const playbackStageSummary = document.getElementById("playbackStageSummary");
+const playbackAutoBtn = document.getElementById("playbackAutoBtn");
+const playbackClipMeta = document.getElementById("playbackClipMeta");
+const playbackClipNote = document.getElementById("playbackClipNote");
+const playbackPlaylist = document.getElementById("playbackPlaylist");
 const matchSizeSelector = document.getElementById("matchSizeSelector");
 const entryFeeSelector = document.getElementById("entryFeeSelector");
 const toastStack = document.getElementById("toastStack");
@@ -33,6 +43,16 @@ export {
     matchStateTitle,
     playerMatchList,
     playerMatchPanel,
+    playbackAutoBtn,
+    playbackClipMeta,
+    playbackClipNote,
+    playbackEmpty,
+    playbackPanel,
+    playbackPlaylist,
+    playbackShell,
+    playbackStageSummary,
+    playbackStageTitle,
+    playbackVideo,
     queueList,
     refreshQueueBtn,
     sessionBox,
