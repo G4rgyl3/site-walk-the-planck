@@ -69,7 +69,6 @@ try {
     ");
 
     $sessionUpdate->execute([
-        ":matchId" => $matchId,
         ":wallet" => $walletAddress,
         ":sessionToken" => $sessionToken
     ]);
@@ -119,28 +118,6 @@ try {
         ":sessionToken" => $sessionToken,
         ":maxPlayers" => $maxPlayers,
         ":entryFeeWei" => $entryFeeWei
-    ]);
-
-    $pdo->prepare("
-        INSERT INTO player_match_preferences (
-            wallet_address,
-            session_token,
-            max_players,
-            entry_fee_wei
-        ) VALUES (
-            :wallet,
-            :sessionToken,
-            :maxPlayers,
-            :entryFeeWei
-        )
-        ON DUPLICATE KEY UPDATE
-            max_players = VALUES(max_players),
-            entry_fee_wei = VALUES(entry_fee_wei)
-    ")->execute([
-        ":wallet" => $walletAddress,
-        ":sessionToken" => $sessionToken,
-        ":maxPlayers" => $maxPlayers,
-            ":entryFeeWei" => $entryFeeWei
     ]);
 
     $pdo->commit();

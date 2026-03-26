@@ -55,16 +55,6 @@ $queuedSql = "
     GROUP BY pmp.max_players, pmp.entry_fee_wei
 ";
 
-$committedSql = "
-    SELECT
-        psm.max_players,
-        psm.entry_fee_wei,
-        COUNT(DISTINCT psm.wallet_address) AS committed_count
-    FROM player_session_matches psm
-    WHERE psm.state NOT IN ('resolved', 'refunded', 'cancelled')
-    GROUP BY psm.max_players, psm.entry_fee_wei
-";
-
 $selfStmt = $pdo->prepare($selfSql);
 $selfStmt->bindValue(":wallet", $walletAddress, PDO::PARAM_STR);
 $selfStmt->bindValue(":sessionToken", $sessionToken, PDO::PARAM_STR);
@@ -77,41 +67,18 @@ $queuedStmt->bindValue(":live_window", $liveWindowSeconds, PDO::PARAM_INT);
 $queuedStmt->execute();
 $queuedRows = $queuedStmt->fetchAll();
 
-$committedStmt = $pdo->prepare($committedSql);
-$committedStmt->execute();
-$committedRows = $committedStmt->fetchAll();
-
 $queuedCounts = [];
 foreach ($queuedRows as $row) {
     $key = $row["max_players"] . ":" . $row["entry_fee_wei"];
     $queuedCounts[$key] = (int)$row["queued_count"];
 }
 
-$committedCounts = [];
-foreach ($committedRows as $row) {
-    $key = $row["max_players"] . ":" . $row["entry_fee_wei"];
-    $committedCounts[$key] = (int)$row["committed_count"];
-}
-
 $matches = [];
 foreach ($selfRows as $row) {
-    $key = $row["max_players"] . ":" . $row["entry_fee_wei"];
-    $queuedCount = $queuedCounts[$key] ?? 0;
-    $committedCount = $committedCounts[$key] ?? 0;
-    $readyCount = $queuedCount + $committedCount;
-    $maxPlayers = (int)$row["max_players"];
-
-    if ($readyCount < $maxPlayers) {
-        continue;
-    }
-
     $matches[] = [
-        "maxPlayers" => $maxPlayers,
+        "maxPlayers" => (int)$row["max_players"],
         "entryFeeWei" => (string)$row["entry_fee_wei"],
-        "queuedCount" => $queuedCount,
-        "committedCount" => $committedCount,
-        "readyCount" => $readyCount,
-        "matchable" => $readyCount >= $maxPlayers
+        "queuedCount" => $queuedCounts[$row["max_players"] . ":" . $row["entry_fee_wei"]] ?? 0
     ];
 }
 

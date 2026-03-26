@@ -45,6 +45,14 @@ import {
 let unsubscribeWallet = null;
 let lastWalletAccount = null;
 
+function isExpiredOpenMatch(match) {
+    if (!match || Number(match.statusCode) !== 0 || !match.deadline) {
+        return false;
+    }
+
+    return (match.deadline * 1000) <= Date.now();
+}
+
 function getWalletActionErrorMessage(err) {
     const contractError = decodeContractError(err);
 
@@ -75,7 +83,7 @@ function hasBlockingMatch(matches = getPlayerMatches()) {
     return matches.some((match) =>
         match.isClaimable ||
         match.isRefundable ||
-        match.statusCode === 0 ||
+        (match.statusCode === 0 && !isExpiredOpenMatch(match)) ||
         match.statusCode === 1
     );
 }
@@ -83,7 +91,10 @@ function hasBlockingMatch(matches = getPlayerMatches()) {
 function getBlockedBucketKeys(matches = getPlayerMatches()) {
     return new Set(
         matches
-            .filter((match) => match.statusCode === 0 || match.statusCode === 1)
+            .filter((match) =>
+                (match.statusCode === 0 && !isExpiredOpenMatch(match)) ||
+                match.statusCode === 1
+            )
             .map((match) => `${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`)
     );
 }

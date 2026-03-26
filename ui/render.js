@@ -175,14 +175,24 @@ function renderQueues(queues) {
     }
 
     queueList.innerHTML = queues.map((q) => {
-        const matchable = !!q.matchable;
+        const hasCommittedCounts = q.committedCount != null && q.readyCount != null;
+        const matchable = q.matchable === true;
+        const readyText = hasCommittedCounts
+            ? `${q.readyCount} / ${q.maxPlayers}`
+            : `Unknown / ${q.maxPlayers}`;
+        const committedText = hasCommittedCounts
+            ? `${q.committedCount ?? 0}`
+            : "Unknown";
+        const statusText = hasCommittedCounts
+            ? (matchable ? "Matchable now" : "Waiting for more players")
+            : "Connect wallet on a supported chain to load committed players";
 
         return `
             <div class="queue-card">
                 <div class="queue-title">${q.maxPlayers} Players | ${fromWei(q.entryFeeWei)} ETH</div>
-                <div class="queue-ready">Ready: ${q.readyCount} / ${q.maxPlayers}</div>
-                <div class="queue-waiting">Queued: ${q.queuedCount ?? 0} | Committed: ${q.committedCount ?? 0}</div>
-                <div class="queue-waiting">${matchable ? "Matchable now" : "Waiting for more players"}</div>
+                <div class="queue-ready">Ready: ${readyText}</div>
+                <div class="queue-waiting">Queued: ${q.queuedCount ?? 0} | Committed: ${committedText}</div>
+                <div class="queue-waiting">${statusText}</div>
             </div>
         `;
     }).join("");

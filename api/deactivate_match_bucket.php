@@ -48,17 +48,6 @@ try {
 
     $stmt->execute([
         ":wallet" => $walletAddress,
-        ":sessionToken" => $sessionToken
-    ]);
-
-    $pdo->prepare("
-        DELETE FROM player_match_preferences
-        WHERE wallet_address = :wallet
-          AND session_token = :sessionToken
-          AND max_players = :maxPlayers
-          AND entry_fee_wei = :entryFeeWei
-    ")->execute([
-        ":wallet" => $walletAddress,
         ":sessionToken" => $sessionToken,
         ":maxPlayers" => $maxPlayers,
         ":entryFeeWei" => $entryFeeWei

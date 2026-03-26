@@ -159,6 +159,10 @@ class WalkThePlanckContract extends BaseContract {
         return this.contract.getMatchPlayers(matchId);
     }
 
+    async getActiveMatchBuckets() {
+        return this.contract.getActiveMatchBuckets();
+    }
+
     getLobbyIdFromReceipt(receipt) {
         if (!this.contract?.interface || !Array.isArray(receipt?.logs)) {
             return null;
@@ -231,6 +235,16 @@ function normalizeMatchRecord(matchId, record, players, claimableSet, refundable
     };
 }
 
+function normalizeActiveMatchBucket(bucket) {
+    return {
+        maxPlayers: toNumber(bucket?.maxPlayers),
+        playerCount: toNumber(bucket?.playerCount),
+        entryFeeWei: toStringValue(bucket?.entryFee),
+        deadline: toNumber(bucket?.deadline),
+        matchId: toStringValue(bucket?.matchId)
+    };
+}
+
 async function getPlayerMatchDetails(playerAddress) {
     const contract = new WalkThePlanckContract();
     const [matchIds, claimableIds, refundableIds] = await Promise.all([
@@ -262,6 +276,13 @@ async function getPlayerMatchDetails(playerAddress) {
     );
 
     return matches.sort((left, right) => Number(right.id) - Number(left.id));
+}
+
+async function getActiveMatchBuckets() {
+    const contract = new WalkThePlanckContract();
+    const buckets = await contract.getActiveMatchBuckets();
+
+    return (buckets ?? []).map(normalizeActiveMatchBucket);
 }
 
 async function joinPublishedLobby(maxPlayers, entryFeeWei) {
@@ -298,6 +319,7 @@ export {
     claimPublishedMatch,
     claimPublishedRefund,
     decodeContractError,
+    getActiveMatchBuckets,
     getPlayerMatchDetails,
     WalkThePlanckContract,
     getPublishedGameMetadata,

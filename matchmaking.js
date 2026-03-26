@@ -7,6 +7,7 @@ import {
     getAvailableMatches,
     getIsInQueue,
     getPlayerMatches,
+    getQueues,
     setAvailableMatches,
     setPlayerMatches
 } from "./state/app-state.js";
@@ -107,10 +108,35 @@ async function refreshMatchCandidates() {
         const data = await getJson(
             `${ENDPOINTS.matchCandidates}?walletAddress=${encodeURIComponent(walletAddress.toLowerCase())}&sessionToken=${encodeURIComponent(getSessionToken())}&t=${Date.now()}`
         );
+        const queueMap = new Map(
+            getQueues().map((queue) => [
+                `${Number(queue.maxPlayers)}:${String(queue.entryFeeWei)}`,
+                queue
+            ])
+        );
 
         const blockedBucketKeys = getBlockedBucketKeys();
-        const matches = sortMatches(data.matches || []).filter((match) =>
-            !blockedBucketKeys.has(`${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`)
+        const matches = sortMatches(
+            (data.matches || [])
+                .map((match) => {
+                    const key = `${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`;
+                    const queue = queueMap.get(key);
+
+                    if (!queue || queue.readyCount == null || Number(queue.readyCount) < Number(match.maxPlayers)) {
+                        return null;
+                    }
+
+                    return {
+                        ...match,
+                        committedCount: queue.committedCount,
+                        readyCount: queue.readyCount,
+                        matchable: queue.matchable
+                    };
+                })
+                .filter((match) =>
+                    match &&
+                    !blockedBucketKeys.has(`${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`)
+                )
         );
         setAvailableMatches(matches);
         renderAvailableMatches(matches);
