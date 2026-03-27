@@ -22,10 +22,44 @@
 </head>
 <body>
   <div class="app-shell">
+    <section class="hero-brand-panel">
+      <div class="hero-brand-main">
+        <img
+          class="hero-brand-logo"
+          src="./media/orange haus labs/OHBanner.png"
+          alt="Orange Haus Labs"
+        />
+        <div class="hero-brand-copy">
+          <div class="hero-brand-kicker">Orange Haus Labs</div>
+          <h1 class="hero-brand-title">Walk the Planck</h1>
+          <p class="hero-brand-subtitle">
+            A cinematic on-chain fate game powered by matchmaking, suspense, and Pyth Entropy.
+          </p>
+        </div>
+      </div>
+
+      <div class="hero-brand-partner">
+        <div class="hero-brand-powered">Powered by</div>
+        <img
+          class="hero-brand-pyth"
+          src="./media/pyth brand kit/Pyth Full Logo/Light/pyth-logo-light.svg"
+          alt="Pyth"
+        />
+        <div class="hero-brand-entropy">Entropy</div>
+      </div>
+    </section>
+
     <div class="left-column">
       <section class="panel">
         <div class="panel-inner">
-          <h1 class="panel-title">Player Panel</h1>
+          <div class="panel-heading-with-brand">
+            <h2 class="panel-title">Player Panel</h2>
+            <img
+              class="panel-heading-mark"
+              src="./media/orange haus labs/OH.png"
+              alt="Orange Haus Labs mark"
+            />
+          </div>
           <section class="section wallet-section">
             <div class="wallet-strip">
               <div class="wallet-strip-main">
@@ -94,7 +128,18 @@
     <section class="panel">
       <div class="panel-inner">
         <div class="queue-panel-header">
-          <h2 class="panel-title">Matchmaking</h2>
+          <div class="panel-heading-with-brand panel-heading-with-brand-right">
+            <h2 class="panel-title">Matchmaking</h2>
+            <div class="partner-pill">
+              <span class="partner-pill-label">Powered by</span>
+              <img
+                class="partner-pill-logo"
+                src="./media/pyth brand kit/Pyth Wordmark/Light/pyth-logo-wordmark-light.svg"
+                alt="Pyth"
+              />
+              <span class="partner-pill-product">Entropy</span>
+            </div>
+          </div>
           <p class="panel-subtitle">
             Live status for your current matchmaking session.
           </p>
@@ -123,6 +168,24 @@
             <div class="available-match-title">Walk The Planck</div>
             <div class="available-match-subtitle">
               Cinematic state playback for the match currently resolving on chain.
+            </div>
+            <div class="playback-brand-strip">
+              <div class="playback-brand-chip">
+                <img
+                  class="playback-brand-chip-logo"
+                  src="./media/orange haus labs/OH.png"
+                  alt="Orange Haus Labs"
+                />
+                <span>Built by Orange Haus Labs</span>
+              </div>
+              <div class="playback-brand-chip playback-brand-chip-pyth">
+                <img
+                  class="playback-brand-chip-logo playback-brand-chip-logo-pyth"
+                  src="./media/pyth brand kit/Pyth Symbol/Light/pyth-logo-symbol-light.svg"
+                  alt="Pyth"
+                />
+                <span>Powered by Pyth Entropy</span>
+              </div>
             </div>
           </div>
 
@@ -210,6 +273,26 @@
   </div>
 
   <div class="playback-backdrop hidden" id="playbackBackdrop"></div>
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <div class="site-footer-brand">
+        <img
+          class="site-footer-brand-logo"
+          src="./media/orange haus labs/Orange Haus Labs White.png"
+          alt="Orange Haus Labs"
+        />
+        <div class="site-footer-brand-copy">Built for dramatic on-chain resolution.</div>
+      </div>
+      <div class="site-footer-brand site-footer-brand-pyth">
+        <div class="site-footer-brand-copy">Randomness and callbacks powered by</div>
+        <img
+          class="site-footer-pyth-logo"
+          src="./media/pyth brand kit/Pyth Full Logo/Light/pyth-logo-light.svg"
+          alt="Pyth Entropy"
+        />
+      </div>
+    </div>
+  </footer>
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>
