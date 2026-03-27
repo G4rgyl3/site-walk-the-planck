@@ -133,7 +133,7 @@
           <div class="playback-shell hidden" id="playbackShell">
             <div class="playback-stage">
               <div class="playback-video-shell">
-                <video class="playback-video" id="playbackVideo" controls playsinline preload="metadata"></video>
+                <video class="playback-video" id="playbackVideo" playsinline preload="metadata"></video>
                 <div class="playback-transition hidden" id="playbackTransition"></div>
                 <div class="playback-video-overlay hidden" id="playbackVideoOverlay">
                   <div class="playback-video-overlay-title">Waiting For Fate</div>
@@ -151,6 +151,9 @@
                 <div class="playback-stage-actions">
                   <button type="button" class="btn btn-ready playback-mode-btn hidden" id="playbackPrimaryBtn">
                     Walk the Planck
+                  </button>
+                  <button type="button" class="btn btn-neutral playback-mode-btn hidden" id="playbackSkipBtn">
+                    Skip
                   </button>
                   <button type="button" class="btn btn-neutral playback-mode-btn hidden" id="playbackSecondaryBtn">
                     Close

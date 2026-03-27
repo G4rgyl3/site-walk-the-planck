@@ -7,6 +7,7 @@ import {
     playbackEmpty,
     playbackPanel,
     playbackPrimaryBtn,
+    playbackSkipBtn,
     playbackSecondaryBtn,
     playbackShell,
     playbackStageKicker,
@@ -27,6 +28,7 @@ let suspenseTransitionTimerId = null;
 let loserSequenceStepByMatchId = new Map();
 let playbackTransitionTimerId = null;
 let previousRenderedMode = "hidden";
+let playbackUnlocked = false;
 const PLAYBACK_STATE_CLASSES = [
     "state-turn-ready",
     "state-turn-playing",
@@ -275,6 +277,30 @@ function applyButtonState(button, label, action, hidden = false) {
     button.dataset.action = action;
 }
 
+function isSkipEligibleMode(mode) {
+    return mode === "turn_playing" || mode === "loser_intro";
+}
+
+function attemptPlayback(video = playbackVideo) {
+    if (!video) {
+        return;
+    }
+
+    video.muted = false;
+    video.defaultMuted = false;
+
+    const playPromise = video.play();
+    if (playPromise?.catch) {
+        playPromise.catch(() => {
+            if (!playbackUnlocked) {
+                video.muted = true;
+                video.defaultMuted = true;
+                video.play().catch(() => {});
+            }
+        });
+    }
+}
+
 function applyPlaybackVisualState(mode, isVisible) {
     if (!playbackPanel) return;
 
@@ -489,6 +515,7 @@ function renderPlaybackPanel() {
     }
 
     applyButtonState(playbackPrimaryBtn, config.primaryLabel, config.primaryAction);
+    applyButtonState(playbackSkipBtn, "Skip", "skip_playback", !isSkipEligibleMode(mode));
     applyButtonState(playbackSecondaryBtn, config.secondaryLabel, config.secondaryAction);
 
     if (playbackVideo) {
@@ -496,9 +523,14 @@ function renderPlaybackPanel() {
         const shouldReload = playbackVideo.dataset.activeSrc !== nextSrc;
         const modeChanged = playbackVideo.dataset.mode !== mode;
 
-        playbackVideo.muted = true;
+        playbackVideo.controls = false;
+        playbackVideo.muted = false;
+        playbackVideo.defaultMuted = false;
         playbackVideo.loop = config.loop;
         playbackVideo.playsInline = true;
+        playbackVideo.disablePictureInPicture = true;
+        playbackVideo.controlsList = "nodownload noplaybackrate nofullscreen";
+        playbackVideo.volume = 1;
 
         playbackVideo.dataset.mode = mode;
         playbackVideo.dataset.matchId = match?.id ? String(match.id) : "";
@@ -514,7 +546,7 @@ function renderPlaybackPanel() {
         }
 
         if (config.autoplay && (shouldReload || playbackVideo.paused)) {
-            playbackVideo.play().catch(() => {});
+            attemptPlayback(playbackVideo);
         }
 
         if (!config.autoplay && shouldReload) {
@@ -536,10 +568,24 @@ function handlePlaybackAction(action) {
     switch (action) {
     case "start_turn":
         if (!match) return;
+        playbackUnlocked = true;
         activeFlowMatchId = String(match.id);
         revealStartedMatchId = String(match.id);
         revealCompletedMatchId = null;
         renderPlaybackPanel();
+        return;
+    case "skip_playback":
+        if (!match || !playbackVideo) return;
+
+        if (playbackVideo.dataset.mode === "turn_playing") {
+            completeTurnReveal(playbackVideo.dataset.matchId || match.id);
+            return;
+        }
+
+        if (playbackVideo.dataset.mode === "loser_intro") {
+            loserSequenceStepByMatchId.set(String(match.id), 1);
+            renderPlaybackPanel();
+        }
         return;
     case "claim_match":
         if (!match) return;
@@ -570,6 +616,10 @@ function handlePlaybackAction(action) {
 function bindPlaybackEvents() {
     playbackPrimaryBtn?.addEventListener("click", () => {
         handlePlaybackAction(playbackPrimaryBtn.dataset.action);
+    });
+
+    playbackSkipBtn?.addEventListener("click", () => {
+        handlePlaybackAction(playbackSkipBtn.dataset.action);
     });
 
     playbackSecondaryBtn?.addEventListener("click", () => {
