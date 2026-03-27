@@ -19,6 +19,7 @@ const playbackPanel = document.getElementById("playbackPanel");
 const playbackEmpty = document.getElementById("playbackEmpty");
 const playbackShell = document.getElementById("playbackShell");
 const playbackVideo = document.getElementById("playbackVideo");
+const playbackTransition = document.getElementById("playbackTransition");
 const playbackVideoOverlay = document.getElementById("playbackVideoOverlay");
 const playbackStageKicker = document.getElementById("playbackStageKicker");
 const playbackStageTitle = document.getElementById("playbackStageTitle");
@@ -57,6 +58,7 @@ export {
     playbackStageKicker,
     playbackStageSummary,
     playbackStageTitle,
+    playbackTransition,
     playbackVideo,
     playbackVideoOverlay,
     queueList,

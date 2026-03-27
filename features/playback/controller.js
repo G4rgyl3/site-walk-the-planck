@@ -12,6 +12,7 @@ import {
     playbackStageKicker,
     playbackStageSummary,
     playbackStageTitle,
+    playbackTransition,
     playbackVideo,
     playbackVideoOverlay
 } from "../../ui/dom.js";
@@ -24,6 +25,8 @@ let dismissedThroughMatchId = 0;
 let revealCompletionTimerId = null;
 let suspenseTransitionTimerId = null;
 let loserSequenceStepByMatchId = new Map();
+let playbackTransitionTimerId = null;
+let previousRenderedMode = "hidden";
 const PLAYBACK_STATE_CLASSES = [
     "state-turn-ready",
     "state-turn-playing",
@@ -327,6 +330,64 @@ function clearSuspenseTransitionTimer() {
     }
 }
 
+function clearPlaybackTransitionTimer() {
+    if (playbackTransitionTimerId) {
+        window.clearTimeout(playbackTransitionTimerId);
+        playbackTransitionTimerId = null;
+    }
+}
+
+function getPlaybackTransitionClass(mode) {
+    if (mode === "winner") {
+        return "transition-victory";
+    }
+
+    if (mode === "loser_intro" || mode === "loser_finale") {
+        return "transition-defeat";
+    }
+
+    if (mode === "turn_waiting" || mode === "turn_playing") {
+        return "transition-resolve";
+    }
+
+    return "";
+}
+
+function triggerPlaybackTransition(mode) {
+    if (!playbackTransition) {
+        return;
+    }
+
+    const transitionClass = getPlaybackTransitionClass(mode);
+    playbackTransition.classList.remove(
+        "is-active",
+        "transition-resolve",
+        "transition-victory",
+        "transition-defeat",
+        "hidden"
+    );
+
+    if (!transitionClass) {
+        playbackTransition.classList.add("hidden");
+        return;
+    }
+
+    clearPlaybackTransitionTimer();
+    playbackTransition.classList.add(transitionClass);
+    void playbackTransition.offsetWidth;
+    playbackTransition.classList.add("is-active");
+    playbackTransitionTimerId = window.setTimeout(() => {
+        playbackTransition.classList.remove(
+            "is-active",
+            "transition-resolve",
+            "transition-victory",
+            "transition-defeat"
+        );
+        playbackTransition.classList.add("hidden");
+        playbackTransitionTimerId = null;
+    }, 800);
+}
+
 function completeTurnReveal(matchId) {
     if (!matchId || String(revealCompletedMatchId) === String(matchId)) {
         return;
@@ -387,8 +448,10 @@ function renderPlaybackPanel() {
     if (!config.entry || !clip) {
         clearRevealCompletionTimer();
         clearSuspenseTransitionTimer();
+        clearPlaybackTransitionTimer();
         applyPlaybackVisualState("hidden", false);
         playbackPanel.classList.add("hidden");
+        previousRenderedMode = "hidden";
         return;
     }
 
@@ -397,6 +460,11 @@ function renderPlaybackPanel() {
     playbackEmpty?.classList.add("hidden");
     playbackShell?.classList.remove("hidden");
     playbackVideoOverlay?.classList.toggle("hidden", mode !== "turn_waiting");
+
+    if (mode !== previousRenderedMode && previousRenderedMode !== "hidden") {
+        triggerPlaybackTransition(mode);
+    }
+    previousRenderedMode = mode;
 
     if (playbackStageKicker) {
         playbackStageKicker.textContent = config.kicker;
@@ -490,6 +558,7 @@ function handlePlaybackAction(action) {
         revealCompletedMatchId = null;
         clearRevealCompletionTimer();
         clearSuspenseTransitionTimer();
+        clearPlaybackTransitionTimer();
         playbackVideo?.pause();
         renderPlaybackPanel();
         return;
@@ -558,6 +627,7 @@ function initPlaybackController() {
             revealCompletedMatchId = null;
             clearRevealCompletionTimer();
             clearSuspenseTransitionTimer();
+            clearPlaybackTransitionTimer();
         }
 
         if (currentMatch && Number(currentMatch.statusCode) !== 2) {
