@@ -11,7 +11,8 @@ import {
     playbackStageKicker,
     playbackStageSummary,
     playbackStageTitle,
-    playbackVideo
+    playbackVideo,
+    playbackVideoOverlay
 } from "../../ui/dom.js";
 import { PLAYBACK_ENTRY_IDS, getPlaybackMatchById } from "./library.js";
 
@@ -20,6 +21,8 @@ let revealStartedMatchId = null;
 let revealCompletedMatchId = null;
 let dismissedThroughMatchId = 0;
 let revealCompletionTimerId = null;
+let suspenseTransitionTimerId = null;
+let loserSequenceStepByMatchId = new Map();
 
 function getEntry(entryId) {
     return getPlaybackMatchById(entryId);
@@ -103,8 +106,17 @@ function getPanelMode(match) {
         return "turn_playing";
     }
 
+    if (suspenseTransitionTimerId) {
+        return "turn_waiting";
+    }
+
     if (Number(match.statusCode) === 2) {
-        return isLoser(match) ? "loser" : "winner";
+        if (isLoser(match)) {
+            const loserStep = loserSequenceStepByMatchId.get(String(match.id)) ?? 0;
+            return loserStep > 0 ? "loser_finale" : "loser_intro";
+        }
+
+        return "winner";
     }
 
     return "turn_waiting";
@@ -170,7 +182,21 @@ function getModeConfig(mode, match) {
             autoplay: true,
             loop: true
         };
-    case "loser":
+    case "loser_intro":
+        return {
+            entry: getEntry(PLAYBACK_ENTRY_IDS.loser),
+            kicker: "Defeat",
+            title: `Match #${match.id} did not go your way`,
+            summary: "The reveal has turned against you. The final consequence is unfolding now.",
+            note: "Stay with the sequence. The finale clip will follow automatically.",
+            primaryLabel: "",
+            primaryAction: "",
+            secondaryLabel: "",
+            secondaryAction: "",
+            autoplay: true,
+            loop: false
+        };
+    case "loser_finale":
         return {
             entry: getEntry(PLAYBACK_ENTRY_IDS.loser),
             kicker: "Defeat",
@@ -211,7 +237,11 @@ function getPrimaryClip(entry, mode) {
         return null;
     }
 
-    if (mode === "loser" && entry.clips.length > 1) {
+    if (mode === "loser_intro") {
+        return entry.clips[0];
+    }
+
+    if (mode === "loser_finale" && entry.clips.length > 1) {
         return entry.clips[1];
     }
 
@@ -240,13 +270,30 @@ function clearRevealCompletionTimer() {
     }
 }
 
+function clearSuspenseTransitionTimer() {
+    if (suspenseTransitionTimerId) {
+        window.clearTimeout(suspenseTransitionTimerId);
+        suspenseTransitionTimerId = null;
+    }
+}
+
 function completeTurnReveal(matchId) {
     if (!matchId || String(revealCompletedMatchId) === String(matchId)) {
         return;
     }
 
     clearRevealCompletionTimer();
+    clearSuspenseTransitionTimer();
     revealCompletedMatchId = String(matchId);
+
+    const match = getMatchById(matchId);
+    if (match && Number(match.statusCode) === 2) {
+        suspenseTransitionTimerId = window.setTimeout(() => {
+            suspenseTransitionTimerId = null;
+            renderPlaybackPanel();
+        }, 1400);
+    }
+
     renderPlaybackPanel();
 }
 
@@ -289,6 +336,7 @@ function renderPlaybackPanel() {
 
     if (!config.entry || !clip) {
         clearRevealCompletionTimer();
+        clearSuspenseTransitionTimer();
         playbackPanel.classList.add("hidden");
         return;
     }
@@ -296,6 +344,7 @@ function renderPlaybackPanel() {
     playbackPanel.classList.remove("hidden");
     playbackEmpty?.classList.add("hidden");
     playbackShell?.classList.remove("hidden");
+    playbackVideoOverlay?.classList.toggle("hidden", mode !== "turn_waiting");
 
     if (playbackStageKicker) {
         playbackStageKicker.textContent = config.kicker;
@@ -383,10 +432,12 @@ function handlePlaybackAction(action) {
     case "dismiss_resolved":
         if (!match) return;
         dismissedThroughMatchId = Math.max(dismissedThroughMatchId, getMatchIdNumber(match));
+        loserSequenceStepByMatchId.delete(String(match.id));
         activeFlowMatchId = null;
         revealStartedMatchId = null;
         revealCompletedMatchId = null;
         clearRevealCompletionTimer();
+        clearSuspenseTransitionTimer();
         playbackVideo?.pause();
         renderPlaybackPanel();
         return;
@@ -407,6 +458,15 @@ function bindPlaybackEvents() {
     playbackVideo?.addEventListener("ended", () => {
         if (playbackVideo.dataset.mode === "turn_playing") {
             completeTurnReveal(playbackVideo.dataset.matchId || null);
+            return;
+        }
+
+        if (playbackVideo.dataset.mode === "loser_intro") {
+            const matchId = playbackVideo.dataset.matchId || null;
+            if (!matchId) return;
+
+            loserSequenceStepByMatchId.set(String(matchId), 1);
+            renderPlaybackPanel();
         }
     });
 
@@ -445,7 +505,13 @@ function initPlaybackController() {
             revealStartedMatchId = null;
             revealCompletedMatchId = null;
             clearRevealCompletionTimer();
+            clearSuspenseTransitionTimer();
         }
+
+        if (currentMatch && Number(currentMatch.statusCode) !== 2) {
+            loserSequenceStepByMatchId.delete(String(currentMatch.id));
+        }
+
         renderPlaybackPanel();
     });
     renderPlaybackPanel();

@@ -132,7 +132,15 @@
 
           <div class="playback-shell hidden" id="playbackShell">
             <div class="playback-stage">
-              <video class="playback-video" id="playbackVideo" controls playsinline preload="metadata"></video>
+              <div class="playback-video-shell">
+                <video class="playback-video" id="playbackVideo" controls playsinline preload="metadata"></video>
+                <div class="playback-video-overlay hidden" id="playbackVideoOverlay">
+                  <div class="playback-video-overlay-title">Waiting For Fate</div>
+                  <div class="playback-video-overlay-text">
+                    The turn is complete. Hold steady while the chain resolves your outcome.
+                  </div>
+                </div>
+              </div>
               <div class="playback-stage-body">
                 <div class="playback-stage-kicker" id="playbackStageKicker">Idle</div>
                 <div class="playback-stage-title" id="playbackStageTitle">Playback clip</div>
