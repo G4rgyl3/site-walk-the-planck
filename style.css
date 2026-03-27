@@ -50,6 +50,10 @@
       padding: 28px;
     }
 
+    body.playback-modal-open {
+      overflow: hidden;
+    }
+
     .app-shell {
       max-width: 1420px;
       margin: 0 auto;
@@ -514,8 +518,80 @@
         0 18px 40px rgba(5, 16, 34, 0.34);
     }
 
+    .playback-panel.is-modal {
+      position: fixed;
+      inset: 50% auto auto 50%;
+      transform: translate(-50%, -50%);
+      width: min(1120px, calc(100vw - 56px));
+      max-height: calc(100vh - 56px);
+      overflow: auto;
+      margin: 0;
+      z-index: 1100;
+      border-width: 1px;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 32px 100px rgba(0, 0, 0, 0.55);
+    }
+
+    .playback-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1090;
+      background:
+        radial-gradient(circle at center, rgba(95, 209, 255, 0.08), transparent 40%),
+        rgba(3, 7, 16, 0.74);
+      backdrop-filter: blur(8px);
+    }
+
+    .playback-panel.is-modal.state-turn-ready,
+    .playback-panel.is-modal.state-turn-playing,
+    .playback-panel.is-modal.state-turn-waiting {
+      border-color: rgba(95, 209, 255, 0.42);
+      background:
+        radial-gradient(circle at top right, rgba(95, 209, 255, 0.16), transparent 26%),
+        linear-gradient(180deg, rgba(8, 22, 42, 0.99), rgba(6, 14, 28, 0.99));
+      box-shadow:
+        0 0 0 1px rgba(95, 209, 255, 0.08),
+        0 32px 100px rgba(0, 0, 0, 0.55),
+        0 0 60px rgba(95, 209, 255, 0.12);
+    }
+
+    .playback-panel.is-modal.state-winner {
+      border-color: rgba(82, 240, 160, 0.45);
+      background:
+        radial-gradient(circle at top right, rgba(82, 240, 160, 0.16), transparent 26%),
+        linear-gradient(180deg, rgba(8, 30, 24, 0.99), rgba(6, 18, 15, 0.99));
+      box-shadow:
+        0 0 0 1px rgba(82, 240, 160, 0.08),
+        0 32px 100px rgba(0, 0, 0, 0.55),
+        0 0 68px rgba(82, 240, 160, 0.14);
+    }
+
+    .playback-panel.is-modal.state-loser-intro,
+    .playback-panel.is-modal.state-loser-finale {
+      border-color: rgba(255, 111, 143, 0.45);
+      background:
+        radial-gradient(circle at top right, rgba(255, 111, 143, 0.16), transparent 26%),
+        linear-gradient(180deg, rgba(35, 11, 22, 0.99), rgba(18, 7, 13, 0.99));
+      box-shadow:
+        0 0 0 1px rgba(255, 111, 143, 0.08),
+        0 32px 100px rgba(0, 0, 0, 0.55),
+        0 0 68px rgba(255, 111, 143, 0.14);
+    }
+
     .playback-header {
       margin-bottom: 14px;
+    }
+
+    .playback-panel.is-modal .available-match-title {
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+
+    .playback-panel.is-modal .available-match-subtitle {
+      max-width: 720px;
+      font-size: 15px;
     }
 
     .playback-empty {
@@ -824,6 +900,11 @@
 
       .playback-stage {
         grid-template-columns: 1fr;
+      }
+
+      .playback-panel.is-modal {
+        width: calc(100vw - 24px);
+        max-height: calc(100vh - 24px);
       }
 
       .playback-video {

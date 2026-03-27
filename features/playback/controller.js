@@ -1,6 +1,7 @@
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getPlayerMatches, subscribe as subscribeAppState } from "../../state/app-state.js";
 import {
+    playbackBackdrop,
     playbackClipMeta,
     playbackClipNote,
     playbackEmpty,
@@ -23,6 +24,14 @@ let dismissedThroughMatchId = 0;
 let revealCompletionTimerId = null;
 let suspenseTransitionTimerId = null;
 let loserSequenceStepByMatchId = new Map();
+const PLAYBACK_STATE_CLASSES = [
+    "state-turn-ready",
+    "state-turn-playing",
+    "state-turn-waiting",
+    "state-winner",
+    "state-loser-intro",
+    "state-loser-finale"
+];
 
 function getEntry(entryId) {
     return getPlaybackMatchById(entryId);
@@ -263,6 +272,47 @@ function applyButtonState(button, label, action, hidden = false) {
     button.dataset.action = action;
 }
 
+function applyPlaybackVisualState(mode, isVisible) {
+    if (!playbackPanel) return;
+
+    playbackPanel.classList.remove(...PLAYBACK_STATE_CLASSES, "is-modal");
+    playbackBackdrop?.classList.add("hidden");
+    document.body.classList.remove("playback-modal-open");
+
+    if (!isVisible) {
+        return;
+    }
+
+    if (mode !== "hidden") {
+        playbackPanel.classList.add("is-modal");
+        playbackBackdrop?.classList.remove("hidden");
+        document.body.classList.add("playback-modal-open");
+    }
+
+    switch (mode) {
+    case "turn_ready":
+        playbackPanel.classList.add("state-turn-ready");
+        break;
+    case "turn_playing":
+        playbackPanel.classList.add("state-turn-playing");
+        break;
+    case "turn_waiting":
+        playbackPanel.classList.add("state-turn-waiting");
+        break;
+    case "winner":
+        playbackPanel.classList.add("state-winner");
+        break;
+    case "loser_intro":
+        playbackPanel.classList.add("state-loser-intro");
+        break;
+    case "loser_finale":
+        playbackPanel.classList.add("state-loser-finale");
+        break;
+    default:
+        break;
+    }
+}
+
 function clearRevealCompletionTimer() {
     if (revealCompletionTimerId) {
         window.clearTimeout(revealCompletionTimerId);
@@ -337,11 +387,13 @@ function renderPlaybackPanel() {
     if (!config.entry || !clip) {
         clearRevealCompletionTimer();
         clearSuspenseTransitionTimer();
+        applyPlaybackVisualState("hidden", false);
         playbackPanel.classList.add("hidden");
         return;
     }
 
     playbackPanel.classList.remove("hidden");
+    applyPlaybackVisualState(mode, true);
     playbackEmpty?.classList.add("hidden");
     playbackShell?.classList.remove("hidden");
     playbackVideoOverlay?.classList.toggle("hidden", mode !== "turn_waiting");
