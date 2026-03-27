@@ -18,12 +18,13 @@ const playbackPanel = document.getElementById("playbackPanel");
 const playbackEmpty = document.getElementById("playbackEmpty");
 const playbackShell = document.getElementById("playbackShell");
 const playbackVideo = document.getElementById("playbackVideo");
+const playbackStageKicker = document.getElementById("playbackStageKicker");
 const playbackStageTitle = document.getElementById("playbackStageTitle");
 const playbackStageSummary = document.getElementById("playbackStageSummary");
-const playbackAutoBtn = document.getElementById("playbackAutoBtn");
+const playbackPrimaryBtn = document.getElementById("playbackPrimaryBtn");
+const playbackSecondaryBtn = document.getElementById("playbackSecondaryBtn");
 const playbackClipMeta = document.getElementById("playbackClipMeta");
 const playbackClipNote = document.getElementById("playbackClipNote");
-const playbackPlaylist = document.getElementById("playbackPlaylist");
 const matchSizeSelector = document.getElementById("matchSizeSelector");
 const entryFeeSelector = document.getElementById("entryFeeSelector");
 const toastStack = document.getElementById("toastStack");
@@ -43,13 +44,14 @@ export {
     matchStateTitle,
     playerMatchList,
     playerMatchPanel,
-    playbackAutoBtn,
     playbackClipMeta,
     playbackClipNote,
     playbackEmpty,
     playbackPanel,
-    playbackPlaylist,
+    playbackPrimaryBtn,
+    playbackSecondaryBtn,
     playbackShell,
+    playbackStageKicker,
     playbackStageSummary,
     playbackStageTitle,
     playbackVideo,

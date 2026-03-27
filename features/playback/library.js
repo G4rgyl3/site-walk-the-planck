@@ -89,13 +89,8 @@ function getPlaybackMatchById(matchId) {
     ) ?? null;
 }
 
-function hasPlaybackForMatch(matchId) {
-    return getPlaybackMatches().some((entry) => String(entry.matchId) === String(matchId));
-}
-
 export {
     PLAYBACK_ENTRY_IDS,
     getPlaybackMatchById,
-    getPlaybackMatches,
-    hasPlaybackForMatch
+    getPlaybackMatches
 };
