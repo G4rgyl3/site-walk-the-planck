@@ -26,6 +26,7 @@ const playbackStageTitle = document.getElementById("playbackStageTitle");
 const playbackStageSummary = document.getElementById("playbackStageSummary");
 const playbackPrimaryBtn = document.getElementById("playbackPrimaryBtn");
 const playbackSkipBtn = document.getElementById("playbackSkipBtn");
+const playbackExplorerBtn = document.getElementById("playbackExplorerBtn");
 const playbackSecondaryBtn = document.getElementById("playbackSecondaryBtn");
 const playbackClipMeta = document.getElementById("playbackClipMeta");
 const playbackClipNote = document.getElementById("playbackClipNote");
@@ -53,6 +54,7 @@ export {
     playbackClipNote,
     playbackEmpty,
     playbackPanel,
+    playbackExplorerBtn,
     playbackPrimaryBtn,
     playbackSkipBtn,
     playbackSecondaryBtn,

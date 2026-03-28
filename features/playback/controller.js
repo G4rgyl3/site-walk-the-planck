@@ -5,6 +5,7 @@ import {
     playbackClipMeta,
     playbackClipNote,
     playbackEmpty,
+    playbackExplorerBtn,
     playbackPanel,
     playbackPrimaryBtn,
     playbackSkipBtn,
@@ -17,6 +18,7 @@ import {
     playbackVideo,
     playbackVideoOverlay
 } from "../../ui/dom.js";
+import { getEntropyExplorerUrl } from "../../lib/entropy-explorer.js";
 import { PLAYBACK_ENTRY_IDS, getPlaybackMatchById } from "./library.js";
 
 let activeFlowMatchId = null;
@@ -287,6 +289,21 @@ function applyButtonState(button, label, action, hidden = false) {
     button.dataset.action = action;
 }
 
+function applyLinkButtonState(link, label, href, hidden = false) {
+    if (!link) return;
+
+    if (hidden || !label || !href) {
+        link.classList.add("hidden");
+        link.textContent = "";
+        link.removeAttribute("href");
+        return;
+    }
+
+    link.classList.remove("hidden");
+    link.textContent = label;
+    link.href = href;
+}
+
 function isSkipEligibleMode(mode) {
     return mode === "turn_playing" || mode === "loser_intro";
 }
@@ -524,8 +541,13 @@ function renderPlaybackPanel() {
         playbackClipNote.textContent = config.note;
     }
 
+    const entropyExplorerUrl = (mode === "winner" || mode === "loser_finale")
+        ? getEntropyExplorerUrl(match)
+        : "";
+
     applyButtonState(playbackPrimaryBtn, config.primaryLabel, config.primaryAction);
     applyButtonState(playbackSkipBtn, "Skip", "skip_playback", !isSkipEligibleMode(mode));
+    applyLinkButtonState(playbackExplorerBtn, "Explore Entropy", entropyExplorerUrl, !entropyExplorerUrl);
     applyButtonState(playbackSecondaryBtn, config.secondaryLabel, config.secondaryAction);
 
     if (playbackVideo) {
