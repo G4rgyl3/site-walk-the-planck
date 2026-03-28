@@ -6,9 +6,12 @@ import { formatSelections, renderAvailableMatches, renderPlayerMatches, setMatch
 import {
     getAvailableMatches,
     getIsInQueue,
+    getPendingMatchSyncId,
     getPlayerMatches,
     getQueues,
     setAvailableMatches,
+    setPendingMatchSyncId,
+    setPlayerMatchesHydrated,
     setPlayerMatches
 } from "./state/app-state.js";
 
@@ -168,13 +171,20 @@ async function refreshPlayerMatches() {
 
     if (!walletAddress) {
         setPlayerMatches([]);
+        setPlayerMatchesHydrated(true);
+        setPendingMatchSyncId("");
         renderPlayerMatches([]);
         return;
     }
 
     try {
         const matches = await getPlayerMatchDetails(walletAddress.toLowerCase());
+        const pendingMatchSyncId = String(getPendingMatchSyncId() || "");
         setPlayerMatches(matches);
+        setPlayerMatchesHydrated(true);
+        if (pendingMatchSyncId && matches.some((match) => String(match.id) === pendingMatchSyncId)) {
+            setPendingMatchSyncId("");
+        }
         renderPlayerMatches(matches);
 
         const bucketsToDeactivate = getDeactivatableBuckets(matches);
@@ -204,6 +214,7 @@ async function refreshPlayerMatches() {
     } catch (err) {
         console.error(err);
         setPlayerMatches([]);
+        setPlayerMatchesHydrated(false);
         renderPlayerMatches([]);
     }
 }

@@ -1,5 +1,10 @@
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
-import { getPlayerMatches, subscribe as subscribeAppState } from "../../state/app-state.js";
+import {
+    getPlayerMatches,
+    getPlayerMatchesHydrated,
+    getSessionTokenValue,
+    subscribe as subscribeAppState
+} from "../../state/app-state.js";
 import {
     playbackBackdrop,
     playbackClipMeta,
@@ -31,6 +36,10 @@ let loserSequenceStepByMatchId = new Map();
 let playbackTransitionTimerId = null;
 let previousRenderedMode = "hidden";
 let playbackUnlocked = false;
+let playbackTrackingKey = "";
+let playbackTrackingInitialized = false;
+let playbackBaselineMatchIds = new Set();
+let playbackShownMatchIds = new Set();
 const PLAYBACK_STATE_CLASSES = [
     "state-turn-ready",
     "state-turn-playing",
@@ -54,7 +63,125 @@ function getMatchIdNumber(match) {
     return Number(match?.id ?? 0);
 }
 
+function getPlaybackTrackingKey() {
+    const walletAddress = (getWalletState().account || "").toLowerCase();
+    const sessionToken = String(getSessionTokenValue() || "");
+
+    if (!walletAddress || !sessionToken) {
+        return "";
+    }
+
+    return `${walletAddress}:${sessionToken}`;
+}
+
+function getPlaybackShownStorageKey(trackingKey) {
+    return `wtp:playback-shown:${trackingKey}`;
+}
+
+function readShownMatchIds(trackingKey) {
+    if (!trackingKey) {
+        return new Set();
+    }
+
+    try {
+        const raw = window.sessionStorage.getItem(getPlaybackShownStorageKey(trackingKey));
+        if (!raw) {
+            return new Set();
+        }
+
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+            return new Set();
+        }
+
+        return new Set(parsed.map((value) => String(value)));
+    } catch (error) {
+        return new Set();
+    }
+}
+
+function writeShownMatchIds() {
+    if (!playbackTrackingKey) {
+        return;
+    }
+
+    try {
+        window.sessionStorage.setItem(
+            getPlaybackShownStorageKey(playbackTrackingKey),
+            JSON.stringify([...playbackShownMatchIds])
+        );
+    } catch (error) {
+        // Ignore storage failures and keep tracking in memory.
+    }
+}
+
+function resetPlaybackTracking() {
+    playbackTrackingKey = "";
+    playbackTrackingInitialized = false;
+    playbackBaselineMatchIds = new Set();
+    playbackShownMatchIds = new Set();
+}
+
+function ensurePlaybackTracking(matches = getPlayerMatches()) {
+    const nextTrackingKey = getPlaybackTrackingKey();
+
+    if (!nextTrackingKey) {
+        resetPlaybackTracking();
+        return false;
+    }
+
+    if (nextTrackingKey !== playbackTrackingKey) {
+        playbackTrackingKey = nextTrackingKey;
+        playbackTrackingInitialized = false;
+        playbackBaselineMatchIds = new Set();
+        playbackShownMatchIds = readShownMatchIds(nextTrackingKey);
+    }
+
+    if (!getPlayerMatchesHydrated()) {
+        return false;
+    }
+
+    if (!playbackTrackingInitialized) {
+        playbackBaselineMatchIds = new Set(
+            matches
+                .map((match) => String(match?.id ?? ""))
+                .filter(Boolean)
+        );
+        playbackTrackingInitialized = true;
+    }
+
+    return true;
+}
+
+function hasPlaybackWindowBeenShown(matchId) {
+    const normalizedMatchId = String(matchId || "");
+
+    if (!normalizedMatchId) {
+        return false;
+    }
+
+    return (
+        playbackBaselineMatchIds.has(normalizedMatchId) ||
+        playbackShownMatchIds.has(normalizedMatchId)
+    );
+}
+
+function markPlaybackWindowShown(matchId) {
+    const normalizedMatchId = String(matchId || "");
+
+    if (!normalizedMatchId || playbackShownMatchIds.has(normalizedMatchId)) {
+        return;
+    }
+
+    playbackShownMatchIds.add(normalizedMatchId);
+    writeShownMatchIds();
+}
+
 function getEligibleMatch(matches = getPlayerMatches()) {
+    if (!ensurePlaybackTracking(matches)) {
+        return null;
+    }
+
     return matches.find((match) => {
         const matchId = getMatchIdNumber(match);
 
@@ -62,7 +189,12 @@ function getEligibleMatch(matches = getPlayerMatches()) {
             return false;
         }
 
+        if (hasPlaybackWindowBeenShown(match.id)) {
+            return false;
+        }
+
         return (
+            Number(match.statusCode) === 2 ||
             Number(match.statusCode) === 1 ||
             (Number(match.statusCode) === 0 && Number(match.playerCount) >= Number(match.maxPlayers))
         );
@@ -82,6 +214,7 @@ function getCurrentMatch() {
         activeFlowMatchId = String(eligibleMatch.id);
         revealStartedMatchId = null;
         revealCompletedMatchId = null;
+        markPlaybackWindowShown(eligibleMatch.id);
     }
 
     return eligibleMatch;
@@ -702,6 +835,7 @@ function bindPlaybackEvents() {
 function initPlaybackController() {
     bindPlaybackEvents();
     subscribeAppState(() => {
+        ensurePlaybackTracking();
         const currentMatch = getCurrentMatch();
         if (!currentMatch) {
             activeFlowMatchId = null;

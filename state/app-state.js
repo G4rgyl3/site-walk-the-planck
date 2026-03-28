@@ -7,7 +7,9 @@ const state = {
     selectedEntryFeesWei: [],
     queues: [],
     availableMatches: [],
-    playerMatches: []
+    playerMatches: [],
+    playerMatchesHydrated: false,
+    pendingMatchSyncId: ""
 };
 
 const listeners = new Set();
@@ -23,7 +25,9 @@ function getState() {
         selectedEntryFeesWei: [...state.selectedEntryFeesWei],
         queues: [...state.queues],
         availableMatches: [...state.availableMatches],
-        playerMatches: [...state.playerMatches]
+        playerMatches: [...state.playerMatches],
+        playerMatchesHydrated: state.playerMatchesHydrated,
+        pendingMatchSyncId: state.pendingMatchSyncId
     };
 }
 
@@ -94,17 +98,39 @@ function getPlayerMatches() {
     return [...state.playerMatches];
 }
 
+function getPlayerMatchesHydrated() {
+    return state.playerMatchesHydrated;
+}
+
+function setPlayerMatchesHydrated(playerMatchesHydrated) {
+    state.playerMatchesHydrated = !!playerMatchesHydrated;
+    notify();
+}
+
+function getPendingMatchSyncId() {
+    return state.pendingMatchSyncId;
+}
+
+function setPendingMatchSyncId(pendingMatchSyncId) {
+    state.pendingMatchSyncId = String(pendingMatchSyncId || "");
+    notify();
+}
+
 function resetMatchmakingState() {
     state.isInQueue = false;
     state.availableMatches = [];
     state.playerMatches = [];
+    state.playerMatchesHydrated = false;
+    state.pendingMatchSyncId = "";
     notify();
 }
 
 export {
     getAvailableMatches,
     getIsInQueue,
+    getPendingMatchSyncId,
     getPlayerMatches,
+    getPlayerMatchesHydrated,
     getQueues,
     getSelectedPreferences,
     getSessionTokenValue,
@@ -114,6 +140,8 @@ export {
     resetMatchmakingState,
     setAvailableMatches,
     setIsInQueue,
+    setPendingMatchSyncId,
+    setPlayerMatchesHydrated,
     setPlayerMatches,
     setQueues,
     setSelectedPreferences,
