@@ -37,6 +37,12 @@ const PLAYBACK_STATE_CLASSES = [
     "state-loser-intro",
     "state-loser-finale"
 ];
+const LOSER_TAUNTS = [
+    "Arrr... ye sailed with Chainlink, did ye? Then mark me words, ye be doomed to drift the seas with sluggish signals and cursed, laggin' data fer all eternity!",
+    "Arrr... ye dared turn down a grog with Pepito? A foolish choice, ye scallywag! Now the sea claims ye. Off ye go, straight to the sharks, ye fresh chum!",
+    "Arrr... ye mocked Captain Planck fer droppin' her loot too soon, did ye? Bold... and foolish! Now she sends ye straight to the briny deep. Enjoy yer watery grave, ye bilge-suckin' fool!",
+    "Arrr... ye praised Aster's Google Pixel, did ye? A grave mistake, ye soft-bellied fool! Captain Planck won't stand fer such nonsense. Off the ship with ye, to a swift and salty death in the depths below!"
+];
 
 function getEntry(entryId) {
     return getPlaybackMatchById(entryId);
@@ -101,6 +107,11 @@ function isLoser(match) {
     }
 
     return String(match.loser || "").toLowerCase() === walletAddress;
+}
+
+function getLoserTaunt(match) {
+    const matchId = Math.max(1, getMatchIdNumber(match));
+    return LOSER_TAUNTS[(matchId - 1) % LOSER_TAUNTS.length];
 }
 
 function getPanelMode(match) {
@@ -201,8 +212,8 @@ function getModeConfig(mode, match) {
             entry: getEntry(PLAYBACK_ENTRY_IDS.loser),
             kicker: "Defeat",
             title: `Match #${match.id} did not go your way`,
-            summary: "The reveal has turned against you. The final consequence is unfolding now.",
-            note: "Stay with the sequence. The finale clip will follow automatically.",
+            summary: getLoserTaunt(match),
+            note: "Captain Planck has more to say. Stay with the sequence. The finale clip will follow automatically.",
             primaryLabel: "",
             primaryAction: "",
             secondaryLabel: "",
@@ -219,8 +230,8 @@ function getModeConfig(mode, match) {
                 ? "The chain resolved against you, but this result is refundable."
                 : "The chain resolved against you. Close out the result when you are ready.",
             note: match.isRefundable
-                ? "If this match is refundable, you can settle it here."
-                : "Use Close to clear the cinematic window and return to the lobby view.",
+                ? `${getLoserTaunt(match)} If this match is refundable, you can settle it here.`
+                : `${getLoserTaunt(match)} Use Close to clear the cinematic window and return to the lobby view.`,
             primaryLabel: match.isRefundable ? "Claim Refund" : "",
             primaryAction: match.isRefundable ? "claim_refund" : "",
             secondaryLabel: "Close",
