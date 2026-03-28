@@ -91,7 +91,7 @@
     }
 
     .hero-brand-logo {
-      width: 220px;
+      width: 188px;
       max-width: 40vw;
       height: auto;
       filter:
@@ -180,55 +180,6 @@
       line-height: 1.15;
       font-weight: 800;
       letter-spacing: -0.02em;
-    }
-
-    .panel-heading-with-brand {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-    }
-
-    .panel-heading-with-brand .panel-title {
-      margin-bottom: 14px;
-    }
-
-    .panel-heading-with-brand-right {
-      align-items: flex-start;
-    }
-
-    .panel-heading-mark {
-      width: 52px;
-      height: 52px;
-      object-fit: contain;
-      filter: drop-shadow(0 10px 20px rgba(255, 153, 0, 0.15));
-    }
-
-    .partner-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(8, 18, 35, 0.72);
-      border: 1px solid rgba(95, 209, 255, 0.22);
-      color: var(--text-soft);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-    }
-
-    .partner-pill-label,
-    .partner-pill-product {
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .partner-pill-logo {
-      height: 14px;
-      width: auto;
-      display: block;
     }
 
     .panel-subtitle {
@@ -1173,7 +1124,7 @@
       }
 
       .hero-brand-logo {
-        width: 180px;
+        width: 156px;
         max-width: 100%;
       }
 
