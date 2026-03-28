@@ -230,8 +230,8 @@ function getModeConfig(mode, match) {
                 ? "The chain resolved against you, but this result is refundable."
                 : "The chain resolved against you. Close out the result when you are ready.",
             note: match.isRefundable
-                ? `${getLoserTaunt(match)} If this match is refundable, you can settle it here.`
-                : `${getLoserTaunt(match)} Use Close to clear the cinematic window and return to the lobby view.`,
+                ? "If this match is refundable, you can settle it here."
+                : "Use Close to clear the cinematic window and return to the lobby view.",
             primaryLabel: match.isRefundable ? "Claim Refund" : "",
             primaryAction: match.isRefundable ? "claim_refund" : "",
             secondaryLabel: "Close",

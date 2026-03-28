@@ -242,6 +242,36 @@ function formatDateTime(unixSeconds) {
     return new Date(unixSeconds * 1000).toLocaleString();
 }
 
+function getEntropyExplorerChainParam() {
+    const chainId = Number(getWalletState().chainId);
+
+    if (chainId === 84532) {
+        return "base-sepolia-testnet";
+    }
+
+    if (chainId === 8453) {
+        return "base-mainnet";
+    }
+
+    return "";
+}
+
+function getEntropyExplorerUrl(match) {
+    const sequenceNumber = String(match?.sequenceNumber ?? "").trim();
+    const chain = getEntropyExplorerChainParam();
+
+    if (!sequenceNumber || !chain) {
+        return "";
+    }
+
+    const params = new URLSearchParams({
+        chain,
+        search: sequenceNumber
+    });
+
+    return `https://entropy-explorer.pyth.network/?${params.toString()}`;
+}
+
 function renderPlayerMatches(matches) {
     if (!playerMatchPanel || !playerMatchList) return;
 
@@ -257,6 +287,7 @@ function renderPlayerMatches(matches) {
         const playerList = match.players.length
             ? match.players.map(shortenWalletAddress).join(", ")
             : "Loading players...";
+        const entropyExplorerUrl = getEntropyExplorerUrl(match);
 
         return `
             <div class="available-match-card">
@@ -273,8 +304,23 @@ function renderPlayerMatches(matches) {
                     <div class="available-match-meta">
                         Pot: ${fromWei(match.totalPotWei)} ETH | Deadline: ${formatDateTime(match.deadline)}
                     </div>
+                    ${entropyExplorerUrl ? `
+                        <div class="available-match-meta">
+                            Entropy Sequence: ${match.sequenceNumber}
+                        </div>
+                    ` : ""}
                 </div>
                 <div>
+                    ${entropyExplorerUrl ? `
+                        <a
+                            class="btn btn-neutral"
+                            href="${entropyExplorerUrl}"
+                            target="_blank"
+                            rel="noreferrer noopener"
+                        >
+                            Entropy Explorer
+                        </a>
+                    ` : ""}
                     ${match.isClaimable ? `
                         <button
                             type="button"
