@@ -61,7 +61,6 @@ function getEligibleMatch(matches = getPlayerMatches()) {
         }
 
         return (
-            Number(match.statusCode) === 2 ||
             Number(match.statusCode) === 1 ||
             (Number(match.statusCode) === 0 && Number(match.playerCount) >= Number(match.maxPlayers))
         );
