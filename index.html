@@ -232,18 +232,6 @@
           <div class="available-match-list" id="availableMatchList"></div>
         </div>
 
-        <div class="available-match-panel hidden" id="playerMatchPanel">
-          <div class="available-match-header">
-            <div class="available-match-badge">On-Chain</div>
-            <div class="available-match-title">Your matches</div>
-            <div class="available-match-subtitle" id="playerMatchSubtitle">
-              Matches connected to this wallet, including claim and refund status.
-            </div>
-          </div>
-
-          <div class="available-match-list" id="playerMatchList"></div>
-        </div>
-
         <div class="queue-panel-header" style="margin-top: 18px;">
           <h3 class="panel-title" style="font-size: 18px; margin-bottom: 8px;">Live Buckets</h3>
           <p class="panel-subtitle" style="margin-bottom: 0;">
@@ -262,6 +250,20 @@
       </div>
     </section>
   </div>
+
+  <section class="panel history-shell hidden" id="playerMatchPanel">
+    <div class="panel-inner">
+      <div class="available-match-header">
+        <div class="available-match-badge">On-Chain</div>
+        <div class="available-match-title">Your matches</div>
+        <div class="available-match-subtitle" id="playerMatchSubtitle">
+          Match history, claim actions, and resolution details for this wallet.
+        </div>
+      </div>
+
+      <div class="available-match-list history-match-list" id="playerMatchList"></div>
+    </div>
+  </section>
 
   <div class="playback-backdrop hidden" id="playbackBackdrop"></div>
   <footer class="site-footer">
