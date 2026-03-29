@@ -920,9 +920,50 @@
       gap: 12px;
     }
 
-    .history-shell {
-      max-width: 1420px;
-      margin: 22px auto 0;
+    .panel-tabs-shell {
+      margin-top: 18px;
+    }
+
+    .panel-tabs {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(83, 103, 158, 0.24);
+      background: rgba(6, 16, 28, 0.54);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .panel-tab {
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+    }
+
+    .panel-tab:hover {
+      transform: translateY(-1px);
+      border-color: rgba(167, 139, 250, 0.26);
+      color: var(--text-main);
+    }
+
+    .panel-tab.is-active {
+      background: linear-gradient(180deg, rgba(95, 209, 255, 0.18), rgba(83, 103, 158, 0.18));
+      border-color: rgba(95, 209, 255, 0.3);
+      color: var(--text-main);
+      box-shadow: 0 10px 24px rgba(5, 16, 34, 0.18);
+    }
+
+    .panel-tab-panel {
+      margin-top: 18px;
     }
 
     .history-match-list .available-match-card {
@@ -1197,6 +1238,10 @@
 
       .history-match-list .available-match-card > div:last-child {
         justify-content: stretch;
+      }
+
+      .panel-tabs {
+        display: flex;
       }
 
       .toast-stack {

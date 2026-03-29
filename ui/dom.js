@@ -5,6 +5,9 @@ const refreshQueueBtn = document.getElementById("refreshQueueBtn");
 const appStatus = document.getElementById("appStatus");
 const walletBox = document.getElementById("connectedWalletBox");
 const sessionBox = document.getElementById("sessionTokenBox");
+const activityTabs = document.getElementById("activityTabs");
+const queueTabBtn = document.getElementById("queueTabBtn");
+const historyTabBtn = document.getElementById("historyTabBtn");
 const queueList = document.getElementById("queueList");
 const matchStateDot = document.getElementById("matchStateDot");
 const matchStateTitle = document.getElementById("matchStateTitle");
@@ -35,11 +38,13 @@ const entryFeeSelector = document.getElementById("entryFeeSelector");
 const toastStack = document.getElementById("toastStack");
 
 export {
+    activityTabs,
     appStatus,
     availableMatchList,
     availableMatchPanel,
     connectBtn,
     entryFeeSelector,
+    historyTabBtn,
     joinQueueBtn,
     leaveQueueBtn,
     matchSizeSelector,
@@ -66,6 +71,7 @@ export {
     playbackVideo,
     playbackVideoOverlay,
     queueList,
+    queueTabBtn,
     refreshQueueBtn,
     sessionBox,
     toastStack,

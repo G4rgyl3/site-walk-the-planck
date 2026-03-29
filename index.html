@@ -232,38 +232,63 @@
           <div class="available-match-list" id="availableMatchList"></div>
         </div>
 
-        <div class="queue-panel-header" style="margin-top: 18px;">
-          <h3 class="panel-title" style="font-size: 18px; margin-bottom: 8px;">Live Buckets</h3>
-          <p class="panel-subtitle" style="margin-bottom: 0;">
-            Recently active players by match size and fee tier.
-          </p>
-        </div>
+        <div class="panel-tabs-shell">
+          <div class="panel-tabs" id="activityTabs" role="tablist" aria-label="Match activity views">
+            <button
+              type="button"
+              class="panel-tab is-active"
+              id="queueTabBtn"
+              data-activity-tab="queues"
+              role="tab"
+              aria-selected="true"
+              aria-controls="queueTabPanel"
+            >
+              Live Buckets
+            </button>
+            <button
+              type="button"
+              class="panel-tab"
+              id="historyTabBtn"
+              data-activity-tab="history"
+              role="tab"
+              aria-selected="false"
+              aria-controls="historyTabPanel"
+            >
+              Your Matches
+            </button>
+          </div>
 
-        <div class="queue-list" id="queueList">
-          <div class="queue-card">
-            <div class="queue-title">Loading queue status...</div>
-            <div class="queue-waiting">Waiting for first refresh.</div>
+          <div class="panel-tab-panel" id="queueTabPanel" data-activity-panel="queues" role="tabpanel" aria-labelledby="queueTabBtn">
+            <div class="queue-panel-header" style="margin-top: 18px;">
+              <h3 class="panel-title" style="font-size: 18px; margin-bottom: 8px;">Live Buckets</h3>
+              <p class="panel-subtitle" style="margin-bottom: 0;">
+                Recently active players by match size and fee tier.
+              </p>
+            </div>
+
+            <div class="queue-list" id="queueList">
+              <div class="queue-card">
+                <div class="queue-title">Loading queue status...</div>
+                <div class="queue-waiting">Waiting for first refresh.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-tab-panel hidden" id="historyTabPanel" data-activity-panel="history" role="tabpanel" aria-labelledby="historyTabBtn">
+            <div class="available-match-header">
+              <div class="available-match-badge">On-Chain</div>
+              <div class="available-match-title">Your matches</div>
+              <div class="available-match-subtitle" id="playerMatchSubtitle">
+                Match history, claim actions, and resolution details for this wallet.
+              </div>
+            </div>
+
+            <div class="available-match-list history-match-list" id="playerMatchList"></div>
           </div>
         </div>
-
-        
       </div>
     </section>
   </div>
-
-  <section class="panel history-shell hidden" id="playerMatchPanel">
-    <div class="panel-inner">
-      <div class="available-match-header">
-        <div class="available-match-badge">On-Chain</div>
-        <div class="available-match-title">Your matches</div>
-        <div class="available-match-subtitle" id="playerMatchSubtitle">
-          Match history, claim actions, and resolution details for this wallet.
-        </div>
-      </div>
-
-      <div class="available-match-list history-match-list" id="playerMatchList"></div>
-    </div>
-  </section>
 
   <div class="playback-backdrop hidden" id="playbackBackdrop"></div>
   <footer class="site-footer">

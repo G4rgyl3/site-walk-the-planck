@@ -2,6 +2,7 @@ import { fromWei } from "@ohlabs/js-chain/utility/ethers.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getEntropyExplorerUrl } from "../lib/entropy-explorer.js";
 import {
+    activityTabs,
     availableMatchList,
     availableMatchPanel,
     appStatus,
@@ -14,9 +15,11 @@ import {
     matchStateDot,
     matchStateMeta,
     matchStateTitle,
+    historyTabBtn,
     playerMatchList,
     playerMatchPanel,
     queueList,
+    queueTabBtn,
     refreshQueueBtn,
     sessionBox,
     toastStack,
@@ -36,6 +39,24 @@ function setStatus(message) {
 
 const TOAST_DEFAULT_DURATION = 4200;
 let toastSequence = 0;
+let activeActivityTab = "queues";
+
+function setActivityTab(tabName) {
+    const nextTab = tabName === "history" ? "history" : "queues";
+    activeActivityTab = nextTab;
+
+    [queueTabBtn, historyTabBtn].forEach((button) => {
+        if (!button) return;
+
+        const isActive = button.dataset.activityTab === nextTab;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+
+    document.querySelectorAll("[data-activity-panel]").forEach((panel) => {
+        panel.classList.toggle("hidden", panel.dataset.activityPanel !== nextTab);
+    });
+}
 
 function showToast(message, options = {}) {
     if (!toastStack || !message) return;
@@ -247,12 +268,9 @@ function renderPlayerMatches(matches) {
     if (!playerMatchPanel || !playerMatchList) return;
 
     if (!Array.isArray(matches) || matches.length === 0) {
-        playerMatchPanel.classList.add("hidden");
         playerMatchList.innerHTML = "";
         return;
     }
-
-    playerMatchPanel.classList.remove("hidden");
 
     playerMatchList.innerHTML = matches.map((match) => {
         const playerList = match.players.length
@@ -316,6 +334,17 @@ function renderPlayerMatches(matches) {
     }).join("");
 }
 
+if (activityTabs) {
+    activityTabs.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-activity-tab]");
+        if (!button || !activityTabs.contains(button)) return;
+
+        setActivityTab(button.dataset.activityTab);
+    });
+}
+
+setActivityTab(activeActivityTab);
+
 function setMatchmakingState({ searching, title, detail, meta }) {
     if (!matchStateDot || !matchStateTitle || !matchStateDetail || !matchStateMeta) return;
 
@@ -331,6 +360,7 @@ export {
     renderAvailableMatches,
     renderPlayerMatches,
     renderQueues,
+    setActivityTab,
     setMatchmakingState,
     setSelectorsLocked,
     setStatus,
