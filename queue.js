@@ -126,6 +126,7 @@ function applySoftQueueMutation(eventDetail) {
     }
 
     if (shouldSuppressQueueEvent(payload)) {
+        console.debug("[queue] suppressed local SSE event", payload);
         return;
     }
 
@@ -173,9 +174,18 @@ function applySoftQueueMutation(eventDetail) {
     });
 
     if (!didChange) {
+        console.debug("[queue] ignored SSE event with no queue impact", payload);
         return;
     }
 
+    console.debug("[queue] applying SSE mutation", {
+        action: payload.action,
+        matchId: payload.matchId ?? null,
+        operationId: payload.operationId ?? null,
+        buckets,
+        before: getQueues(),
+        after: nextQueues
+    });
     setQueues(nextQueues);
     renderQueues(nextQueues);
     void refreshMatchCandidates();
@@ -215,16 +225,8 @@ async function refreshQueues() {
 
     refreshQueuesPromise = (async () => {
     try {
-        try {
-            const activeMatchBuckets = await getActiveMatchBuckets();
-            await postJson(ENDPOINTS.syncActiveMatchBuckets, {
-                buckets: activeMatchBuckets
-            });
-        } catch (error) {
-            console.warn("Active committed match sync skipped.", error);
-        }
-
         const data = await getJson(`${ENDPOINTS.queueStatus}?t=${Date.now()}`);
+        console.debug("[queue] queue snapshot from DB", data);
         const queues = normalizeQueues(data.queues || []);
         setQueues(queues);
         renderQueues(queues);
@@ -242,6 +244,19 @@ async function refreshQueues() {
     }
 }
 
+async function truthUpCommittedMatches() {
+    try {
+        const activeMatchBuckets = await getActiveMatchBuckets();
+        console.debug("[queue] truth-up active match buckets from chain", activeMatchBuckets);
+        const result = await postJson(ENDPOINTS.syncActiveMatchBuckets, {
+            buckets: activeMatchBuckets
+        });
+        console.debug("[queue] truth-up sync result", result);
+    } catch (error) {
+        console.warn("[queue] committed truth-up skipped.", error);
+    }
+}
+
 function startPolling() {
     if (!queueEventsSubscribed) {
         onQueuePreferencesChanged(applySoftQueueMutation);
@@ -256,5 +271,6 @@ export {
     leaveQueue,
     refreshQueues,
     suppressQueueOperation,
-    startPolling
+    startPolling,
+    truthUpCommittedMatches
 };

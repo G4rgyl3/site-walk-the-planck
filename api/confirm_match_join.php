@@ -139,6 +139,15 @@ echo json_encode([
     "matchId" => $matchId
 ]);
 
+error_log("[walk-the-planck] match_join_confirmed emit " . json_encode([
+    "walletAddress" => $walletAddress,
+    "sessionToken" => $sessionToken,
+    "matchId" => $matchId,
+    "maxPlayers" => $maxPlayers,
+    "entryFeeWei" => $entryFeeWei,
+    "deadline" => $deadline > 0 ? $deadline : null
+], JSON_UNESCAPED_SLASHES));
+
 publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
     "action" => "match_join_confirmed",
     "walletAddress" => $walletAddress,

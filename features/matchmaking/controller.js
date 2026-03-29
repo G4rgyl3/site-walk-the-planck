@@ -15,7 +15,7 @@ import {
     joinPublishedLobby
 } from "./walk-the-planck-contract.js";
 import { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches } from "../../matchmaking.js";
-import { createQueueOperationId, leaveQueue, refreshQueues, startPolling, suppressQueueOperation } from "../../queue.js";
+import { createQueueOperationId, leaveQueue, refreshQueues, startPolling, suppressQueueOperation, truthUpCommittedMatches } from "../../queue.js";
 import { resetSessionToken } from "../../session.js";
 import {
     getIsInQueue,
@@ -413,6 +413,15 @@ async function syncWalletState(walletState) {
     lastWalletAccount = walletAddress;
     updateWalletUI();
     void updateMatchmakingUI();
+
+    if (walletAddress) {
+        void (async () => {
+            await truthUpCommittedMatches();
+            await refreshQueues();
+        })();
+        return;
+    }
+
     void refreshQueues();
 }
 
@@ -469,6 +478,7 @@ async function initMatchmakingController() {
     unsubscribeWallet = subscribeWallet(handleWalletStateChange);
     await initializeWallet();
     updateWalletUI();
+    await truthUpCommittedMatches();
     await updateMatchmakingUI();
     await refreshQueues();
 }
