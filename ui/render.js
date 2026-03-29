@@ -17,7 +17,6 @@ import {
     matchStateTitle,
     historyTabBtn,
     playerMatchList,
-    playerMatchPanel,
     queueList,
     queueTabBtn,
     refreshQueueBtn,
@@ -205,16 +204,34 @@ function renderQueues(queues) {
         const committedText = hasCommittedCounts
             ? `${q.committedCount ?? 0}`
             : "Unknown";
+        const statusLabel = hasCommittedCounts
+            ? (matchable ? "Matchable" : "Waiting")
+            : "Chain Needed";
         const statusText = hasCommittedCounts
-            ? (matchable ? "Matchable now" : "Waiting for more players")
-            : "Connect wallet on a supported chain to load committed players";
+            ? (matchable ? "Ready to fill now." : "Waiting for more players.")
+            : "Connect wallet on a supported chain to load committed players.";
 
         return `
-            <div class="queue-card">
-                <div class="queue-title">${q.maxPlayers} Players | ${fromWei(q.entryFeeWei)} ETH</div>
-                <div class="queue-ready">Ready: ${readyText}</div>
-                <div class="queue-waiting">Queued: ${q.queuedCount ?? 0} | Committed: ${committedText}</div>
-                <div class="queue-waiting">${statusText}</div>
+            <div class="queue-card ${matchable ? "is-matchable" : ""}">
+                <div class="queue-card-head">
+                    <div class="queue-title">${q.maxPlayers} Players | ${fromWei(q.entryFeeWei)} ETH</div>
+                    <div class="queue-status-pill ${matchable ? "is-matchable" : ""}">${statusLabel}</div>
+                </div>
+                <div class="queue-metrics">
+                    <div class="queue-metric">
+                        <span class="queue-metric-label">Ready</span>
+                        <span class="queue-metric-value queue-ready">${readyText}</span>
+                    </div>
+                    <div class="queue-metric">
+                        <span class="queue-metric-label">Queued</span>
+                        <span class="queue-metric-value">${q.queuedCount ?? 0}</span>
+                    </div>
+                    <div class="queue-metric">
+                        <span class="queue-metric-label">Committed</span>
+                        <span class="queue-metric-value">${committedText}</span>
+                    </div>
+                </div>
+                <div class="queue-footnote">${statusText}</div>
             </div>
         `;
     }).join("");
@@ -265,7 +282,7 @@ function formatDateTime(unixSeconds) {
 }
 
 function renderPlayerMatches(matches) {
-    if (!playerMatchPanel || !playerMatchList) return;
+    if (!playerMatchList) return;
 
     if (!Array.isArray(matches) || matches.length === 0) {
         playerMatchList.innerHTML = "";

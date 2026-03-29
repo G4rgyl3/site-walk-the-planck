@@ -16,7 +16,6 @@ const matchStateMeta = document.getElementById("matchStateMeta");
 const availableMatchPanel = document.getElementById("availableMatchPanel");
 const availableMatchList = document.getElementById("availableMatchList");
 const playerMatchList = document.getElementById("playerMatchList");
-const playerMatchPanel = document.getElementById("playerMatchPanel");
 const playbackBackdrop = document.getElementById("playbackBackdrop");
 const playbackPanel = document.getElementById("playbackPanel");
 const playbackEmpty = document.getElementById("playbackEmpty");
@@ -53,7 +52,6 @@ export {
     matchStateMeta,
     matchStateTitle,
     playerMatchList,
-    playerMatchPanel,
     playbackBackdrop,
     playbackClipMeta,
     playbackClipNote,
