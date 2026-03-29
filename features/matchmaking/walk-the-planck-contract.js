@@ -4,12 +4,19 @@ import { BaseContract } from "@ohlabs/js-chain/contract/base-contract.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 
 const CONTRACT_ENVIRONMENTS = ["test", "production"];
+const CHAIN_CALLS_ENABLED = false;
 const MATCH_STATUSES = {
     0: "Open",
     1: "Resolving",
     2: "Resolved",
     3: "Cancelled"
 };
+
+function assertChainCallsEnabled() {
+    if (!CHAIN_CALLS_ENABLED) {
+        throw new Error("Chain calls are temporarily disabled.");
+    }
+}
 
 function getEthers() {
     if (!window.ethers) {
@@ -39,6 +46,8 @@ function getConfiguredChainId(environment, chainSlug) {
 }
 
 function getPublishedGameMetadata() {
+    assertChainCallsEnabled();
+
     const walletState = getWalletState();
     const currentChainId = normalizeChainId(walletState.chainId);
 
@@ -246,6 +255,10 @@ function normalizeActiveMatchBucket(bucket) {
 }
 
 async function getPlayerMatchDetails(playerAddress) {
+    if (!CHAIN_CALLS_ENABLED) {
+        return [];
+    }
+
     const contract = new WalkThePlanckContract();
     const [matchIds, claimableIds, refundableIds] = await Promise.all([
         contract.getPlayerMatches(playerAddress),
@@ -279,6 +292,10 @@ async function getPlayerMatchDetails(playerAddress) {
 }
 
 async function getActiveMatchBuckets() {
+    if (!CHAIN_CALLS_ENABLED) {
+        return [];
+    }
+
     const contract = new WalkThePlanckContract();
     const buckets = await contract.getActiveMatchBuckets();
 
@@ -286,6 +303,8 @@ async function getActiveMatchBuckets() {
 }
 
 async function joinPublishedLobby(maxPlayers, entryFeeWei) {
+    assertChainCallsEnabled();
+
     const contract = new WalkThePlanckContract();
     const tx = await contract.joinQueue(maxPlayers, entryFeeWei);
 
@@ -296,6 +315,8 @@ async function joinPublishedLobby(maxPlayers, entryFeeWei) {
 }
 
 async function claimPublishedMatch(matchId) {
+    assertChainCallsEnabled();
+
     const contract = new WalkThePlanckContract();
     const tx = await contract.claim(matchId);
 
@@ -306,6 +327,8 @@ async function claimPublishedMatch(matchId) {
 }
 
 async function claimPublishedRefund(matchId) {
+    assertChainCallsEnabled();
+
     const contract = new WalkThePlanckContract();
     const tx = await contract.claimRefund(matchId);
 
@@ -316,6 +339,7 @@ async function claimPublishedRefund(matchId) {
 }
 
 export {
+    CHAIN_CALLS_ENABLED,
     claimPublishedMatch,
     claimPublishedRefund,
     decodeContractError,

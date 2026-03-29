@@ -3,6 +3,7 @@
 header("Content-Type: application/json");
 
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/matchmaking_events.php";
 
 $raw = file_get_contents("php://input");
 $input = json_decode($raw, true);
@@ -250,4 +251,12 @@ echo json_encode([
         "entryFeesWei" => $entryFees
     ],
     "blockedCombinations" => $blockedCombinations
+]);
+
+publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
+    "action" => $shouldMatchmake ? "entered" : "updated",
+    "walletAddress" => $walletAddress,
+    "sessionToken" => $sessionToken,
+    "buckets" => array_values($queueCombinations),
+    "blockedBuckets" => $blockedCombinations
 ]);

@@ -1,46 +1,79 @@
 import { ENDPOINTS, getJson, postJson } from "./api.js";
+import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
 import { stopHeartbeat } from "./heartbeat.js";
 import { refreshMatchCandidates } from "./matchmaking.js";
-import { getActiveMatchBuckets } from "./features/matchmaking/walk-the-planck-contract.js";
-import { setQueues } from "./state/app-state.js";
+import { onQueuePreferencesChanged } from "./lib/matchmaking-events.js";
+import { getQueues, setQueues } from "./state/app-state.js";
 import { renderQueues, setStatus } from "./ui/render.js";
 
-let pollInterval = null;
-const POLL_MS = 5000;
 let refreshQueuesPromise = null;
+let queueEventsSubscribed = false;
 
-function markCommittedCountsUnknown(queues) {
+function normalizeQueues(queues) {
     return (queues ?? []).map((queue) => ({
         ...queue,
+        queuedCount: Number(queue.queuedCount ?? 0),
         committedCount: null,
         readyCount: null,
         matchable: null
     }));
 }
 
-function mergeCommittedQueueCounts(queues, activeMatchBuckets) {
-    const committedCounts = new Map();
+function getBucketKey(maxPlayers, entryFeeWei) {
+    return `${Number(maxPlayers)}:${String(entryFeeWei)}`;
+}
 
-    for (const bucket of activeMatchBuckets) {
-        const key = `${Number(bucket.maxPlayers)}:${String(bucket.entryFeeWei)}`;
-        const nextCount = (committedCounts.get(key) ?? 0) + Number(bucket.playerCount ?? 0);
-        committedCounts.set(key, nextCount);
+function applySoftQueueMutation(eventDetail) {
+    const payload = eventDetail?.payload;
+    if (!payload || payload.action === "match_join_confirmed" || payload.action === "active_matches_released") {
+        return;
     }
 
-    return (queues ?? []).map((queue) => {
-        const key = `${Number(queue.maxPlayers)}:${String(queue.entryFeeWei)}`;
-        const committedCount = committedCounts.get(key) ?? 0;
-        const queuedCount = Number(queue.queuedCount ?? 0);
-        const readyCount = queuedCount + committedCount;
+    const currentWalletAddress = (getWalletState().account || "").toLowerCase();
+    const eventWalletAddress = String(payload.walletAddress || "").toLowerCase();
+    const currentSessionToken = String(getSessionToken() || "");
+    const eventSessionToken = String(payload.sessionToken || "");
 
+    if (
+        currentWalletAddress &&
+        eventWalletAddress === currentWalletAddress &&
+        currentSessionToken &&
+        eventSessionToken === currentSessionToken
+    ) {
+        return;
+    }
+
+    const buckets = Array.isArray(payload.buckets) ? payload.buckets : [];
+    if (buckets.length === 0) {
+        return;
+    }
+
+    const bucketKeys = new Set(
+        buckets.map((bucket) => getBucketKey(bucket.maxPlayers, bucket.entryFeeWei))
+    );
+    const delta = payload.action === "left" ? -1 : 1;
+    let didChange = false;
+
+    const nextQueues = getQueues().map((queue) => {
+        if (!bucketKeys.has(getBucketKey(queue.maxPlayers, queue.entryFeeWei))) {
+            return queue;
+        }
+
+        didChange = true;
         return {
             ...queue,
-            committedCount,
-            readyCount,
-            matchable: readyCount >= Number(queue.maxPlayers)
+            queuedCount: Math.max(0, Number(queue.queuedCount ?? 0) + delta)
         };
     });
+
+    if (!didChange) {
+        return;
+    }
+
+    setQueues(nextQueues);
+    renderQueues(nextQueues);
+    void refreshMatchCandidates();
 }
 
 async function leaveQueue(walletAddress, sessionToken = getSessionToken(), options = {}) {
@@ -75,19 +108,8 @@ async function refreshQueues() {
 
     refreshQueuesPromise = (async () => {
     try {
-        const dataPromise = getJson(`${ENDPOINTS.queueStatus}?t=${Date.now()}`);
-        const activeMatchBucketsPromise = getActiveMatchBuckets().catch((error) => {
-            console.warn("Committed queue counts are unavailable without chain context.", error);
-            return null;
-        });
-
-        const [data, activeMatchBuckets] = await Promise.all([
-            dataPromise,
-            activeMatchBucketsPromise
-        ]);
-        const queues = Array.isArray(activeMatchBuckets)
-            ? mergeCommittedQueueCounts(data.queues || [], activeMatchBuckets)
-            : markCommittedCountsUnknown(data.queues || []);
+        const data = await getJson(`${ENDPOINTS.queueStatus}?t=${Date.now()}`);
+        const queues = normalizeQueues(data.queues || []);
         setQueues(queues);
         renderQueues(queues);
         await refreshMatchCandidates();
@@ -105,21 +127,16 @@ async function refreshQueues() {
 }
 
 function startPolling() {
-    refreshQueues();
-    if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(refreshQueues, POLL_MS);
-}
-
-function stopPolling() {
-    if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
+    if (!queueEventsSubscribed) {
+        onQueuePreferencesChanged(applySoftQueueMutation);
+        queueEventsSubscribed = true;
     }
+
+    void refreshQueues();
 }
 
 export {
     leaveQueue,
     refreshQueues,
-    startPolling,
-    stopPolling
+    startPolling
 };

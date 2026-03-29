@@ -217,20 +217,6 @@ async function refreshPlayerMatches() {
             });
         }
 
-        if (!getIsInQueue()) {
-            if (hasQueueCountableMatch(matches)) {
-                return;
-            }
-
-            if (hasBlockingMatch(matches)) {
-                return;
-            }
-
-            await postJson(ENDPOINTS.releaseActiveMatch, {
-                walletAddress: walletAddress.toLowerCase(),
-                sessionToken: getSessionToken()
-            });
-        }
     } catch (err) {
         console.error(err);
         setPlayerMatches([]);

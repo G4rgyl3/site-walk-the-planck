@@ -523,15 +523,18 @@
 
     .queue-group-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 12px;
     }
 
     .queue-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
       border: 1px solid var(--border);
       border-radius: 18px;
       background: linear-gradient(180deg, rgba(9, 19, 39, 0.96), rgba(8, 15, 31, 0.98));
-      padding: 12px 14px;
+      padding: 10px 12px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
       cursor: pointer;
       transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
@@ -566,20 +569,21 @@
 
     .queue-card-compact {
       display: grid;
-      gap: 10px;
+      gap: 8px;
     }
 
     .queue-card-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 8px;
+      margin-bottom: 4px;
+      padding-right: 24px;
     }
 
     .queue-title {
       margin: 0;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       color: var(--text-main);
     }
@@ -588,12 +592,12 @@
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
-      padding: 5px 9px;
+      padding: 4px 8px;
       border-radius: 999px;
       border: 1px solid rgba(83, 103, 158, 0.28);
       background: rgba(12, 23, 43, 0.76);
       color: var(--text-dim);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 800;
       letter-spacing: 0.05em;
       text-transform: uppercase;
@@ -608,48 +612,121 @@
     .queue-slots {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 6px;
       min-height: 18px;
     }
 
     .queue-slot {
+      position: relative;
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
       width: 14px;
-      height: 14px;
+      height: 18px;
+      opacity: 0.62;
+    }
+
+    .queue-slot-head {
+      width: 7px;
+      height: 7px;
       border-radius: 999px;
-      background: rgba(91, 103, 139, 0.28);
+      background: rgba(91, 103, 139, 0.5);
       border: 1px solid rgba(131, 144, 186, 0.18);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
     }
 
+    .queue-slot-body {
+      width: 10px;
+      height: 8px;
+      margin-top: 2px;
+      border-radius: 999px 999px 4px 4px;
+      background: rgba(91, 103, 139, 0.36);
+      border: 1px solid rgba(131, 144, 186, 0.14);
+    }
+
     .queue-slot.is-filled {
-      background: linear-gradient(180deg, rgba(95, 209, 255, 0.9), rgba(83, 103, 158, 0.9));
+      opacity: 1;
+    }
+
+    .queue-slot.is-filled .queue-slot-head {
+      background: linear-gradient(180deg, rgba(95, 209, 255, 0.95), rgba(83, 103, 158, 0.9));
       border-color: rgba(95, 209, 255, 0.38);
       box-shadow:
         0 0 0 3px rgba(95, 209, 255, 0.08),
         0 8px 18px rgba(95, 209, 255, 0.18);
     }
 
-    .queue-card.is-matchable .queue-slot.is-filled {
-      background: linear-gradient(180deg, rgba(82, 240, 160, 0.95), rgba(53, 213, 138, 0.92));
+    .queue-slot.is-filled .queue-slot-body {
+      background: linear-gradient(180deg, rgba(95, 209, 255, 0.92), rgba(83, 103, 158, 0.88));
+      border-color: rgba(95, 209, 255, 0.28);
+    }
+
+    .queue-card.is-matchable .queue-slot.is-filled .queue-slot-head {
+      background: linear-gradient(180deg, rgba(82, 240, 160, 0.96), rgba(53, 213, 138, 0.92));
       border-color: rgba(82, 240, 160, 0.38);
       box-shadow:
         0 0 0 3px rgba(82, 240, 160, 0.08),
         0 8px 18px rgba(82, 240, 160, 0.18);
     }
 
+    .queue-card.is-matchable .queue-slot.is-filled .queue-slot-body {
+      background: linear-gradient(180deg, rgba(82, 240, 160, 0.94), rgba(53, 213, 138, 0.9));
+      border-color: rgba(82, 240, 160, 0.28);
+    }
+
     .queue-compact-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      font-size: 12px;
+      gap: 6px;
+      font-size: 11px;
       font-weight: 800;
       color: var(--text-soft);
     }
 
+    .queue-lock-indicator {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(95, 209, 255, 0.12);
+      border: 1px solid rgba(95, 209, 255, 0.22);
+      box-shadow: 0 8px 16px rgba(5, 16, 34, 0.18);
+    }
+
+    .queue-card.is-matchable .queue-lock-indicator {
+      background: rgba(82, 240, 160, 0.14);
+      border-color: rgba(82, 240, 160, 0.24);
+    }
+
+    .queue-lock-shackle {
+      position: absolute;
+      top: 3px;
+      width: 7px;
+      height: 6px;
+      border: 1.5px solid rgba(205, 223, 255, 0.78);
+      border-bottom: none;
+      border-radius: 999px 999px 0 0;
+    }
+
+    .queue-lock-body {
+      position: absolute;
+      bottom: 4px;
+      width: 8px;
+      height: 7px;
+      border-radius: 2px;
+      background: rgba(205, 223, 255, 0.82);
+    }
+
     .queue-card-expanded {
       display: none;
-      margin-top: 12px;
-      padding-top: 12px;
+      margin-top: 10px;
+      padding-top: 10px;
       border-top: 1px solid rgba(83, 103, 158, 0.18);
     }
 

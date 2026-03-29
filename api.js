@@ -9,7 +9,8 @@ const ENDPOINTS = {
     releaseActiveMatch: "release_active_match.php",
     heartbeat: "player_heartbeat.php",
     queueStatus: "queue_status.php",
-    matchCandidates : "get_match_candidates.php"
+    matchCandidates : "get_match_candidates.php",
+    streamEvents: "stream_events.php"
 }
 
 async function getJson(path) {
@@ -38,6 +39,7 @@ async function postJson(path, payload) {
 }
 
 export {
+    API_BASE,
     ENDPOINTS,
     getJson, postJson
 }

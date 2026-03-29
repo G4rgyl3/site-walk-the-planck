@@ -7,6 +7,7 @@ import {
 } from "@ohlabs/js-chain/utility/wallet.js";
 import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
 import {
+    CHAIN_CALLS_ENABLED,
     claimPublishedMatch,
     claimPublishedRefund,
     decodeContractError,
@@ -244,6 +245,11 @@ async function handleLeaveQueueClick() {
 }
 
 async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
+    if (!CHAIN_CALLS_ENABLED) {
+        setStatus("Chain calls are temporarily disabled.");
+        return;
+    }
+
     const walletAddress = getWalletState().account;
 
     if (!walletAddress) {
@@ -303,6 +309,11 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
 }
 
 async function handleClaimMatchClick(matchId) {
+    if (!CHAIN_CALLS_ENABLED) {
+        setStatus("Chain calls are temporarily disabled.");
+        return;
+    }
+
     try {
         setStatus(`Submitting claim transaction for match #${matchId}...`);
         const { tx } = await claimPublishedMatch(matchId);
@@ -319,6 +330,11 @@ async function handleClaimMatchClick(matchId) {
 }
 
 async function handleClaimRefundClick(matchId) {
+    if (!CHAIN_CALLS_ENABLED) {
+        setStatus("Chain calls are temporarily disabled.");
+        return;
+    }
+
     try {
         setStatus(`Submitting refund claim for match #${matchId}...`);
         const { tx } = await claimPublishedRefund(matchId);

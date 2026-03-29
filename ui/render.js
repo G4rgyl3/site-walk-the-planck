@@ -214,22 +214,27 @@ function renderQueues(queues) {
             .sort((a, b) => Number(a.entryFeeWei) - Number(b.entryFeeWei))
             .map((q) => {
                 const hasCommittedCounts = q.committedCount != null && q.readyCount != null;
+                const queuedCount = Number(q.queuedCount ?? 0);
                 const matchable = q.matchable === true;
-                const readyCount = hasCommittedCounts ? Number(q.readyCount ?? 0) : 0;
+                const readyCount = hasCommittedCounts ? Number(q.readyCount ?? 0) : queuedCount;
                 const readyText = hasCommittedCounts
                     ? `${readyCount} / ${q.maxPlayers}`
-                    : `Unknown / ${q.maxPlayers}`;
+                    : `${queuedCount} queued`;
                 const committedText = hasCommittedCounts
                     ? `${q.committedCount ?? 0}`
                     : "Unknown";
                 const statusLabel = hasCommittedCounts
                     ? (matchable ? "Matchable" : "Waiting")
-                    : "Chain Needed";
+                    : "Soft Queue";
                 const statusText = hasCommittedCounts
                     ? (matchable ? "Ready to fill now." : "Waiting for more players.")
-                    : "Connect wallet on a supported chain to load committed players.";
+                    : "Showing DB-backed queued players only. Committed counts are currently unavailable.";
+                const hasCommitted = Number(q.committedCount ?? 0) > 0;
                 const peopleIcons = Array.from({ length: Number(q.maxPlayers) || 0 }, (_, index) => `
-                    <span class="queue-slot ${index < readyCount ? "is-filled" : ""}"></span>
+                    <span class="queue-slot ${index < readyCount ? "is-filled" : ""}">
+                        <span class="queue-slot-head"></span>
+                        <span class="queue-slot-body"></span>
+                    </span>
                 `).join("");
 
                 return `
@@ -240,6 +245,12 @@ function renderQueues(queues) {
                         role="button"
                         aria-expanded="false"
                     >
+                        ${hasCommitted ? `
+                            <div class="queue-lock-indicator" aria-label="Committed players present" title="Committed players present">
+                                <span class="queue-lock-shackle"></span>
+                                <span class="queue-lock-body"></span>
+                            </div>
+                        ` : ""}
                         <div class="queue-card-compact">
                             <div class="queue-card-head">
                                 <div class="queue-title">${fromWei(q.entryFeeWei)} ETH</div>
@@ -250,8 +261,6 @@ function renderQueues(queues) {
                             </div>
                             <div class="queue-compact-meta">
                                 <span class="queue-ready">${readyText}</span>
-                                <span>Q ${q.queuedCount ?? 0}</span>
-                                <span>C ${committedText}</span>
                             </div>
                         </div>
                         <div class="queue-card-expanded">
@@ -262,7 +271,7 @@ function renderQueues(queues) {
                                 </div>
                                 <div class="queue-metric">
                                     <span class="queue-metric-label">Queued</span>
-                                    <span class="queue-metric-value">${q.queuedCount ?? 0}</span>
+                                    <span class="queue-metric-value">${queuedCount}</span>
                                 </div>
                                 <div class="queue-metric">
                                     <span class="queue-metric-label">Committed</span>

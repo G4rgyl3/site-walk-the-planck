@@ -3,6 +3,7 @@
 header("Content-Type: application/json");
 
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/matchmaking_events.php";
 
 $input = json_decode(file_get_contents("php://input"), true);
 
@@ -23,6 +24,26 @@ if ($sessionToken === "") {
 
 try {
     $pdo->beginTransaction();
+
+    $queuedBucketsStmt = $pdo->prepare("
+        SELECT max_players, entry_fee_wei
+        FROM player_match_preferences
+        WHERE wallet_address = :wallet
+          AND session_token = :sessionToken
+        FOR UPDATE
+    ");
+    $queuedBucketsStmt->execute([
+        ":wallet" => $walletAddress,
+        ":sessionToken" => $sessionToken
+    ]);
+
+    $queuedBuckets = array_map(
+        static fn(array $bucket) => [
+            "maxPlayers" => (int)($bucket["max_players"] ?? 0),
+            "entryFeeWei" => (string)($bucket["entry_fee_wei"] ?? "")
+        ],
+        $queuedBucketsStmt->fetchAll()
+    );
 
     $activeMatchStmt = $pdo->prepare("
         SELECT COUNT(*) AS active_match_count
@@ -73,4 +94,11 @@ try {
 echo json_encode([
     "success" => true,
     "status" => $hasActiveMatch ? "matchmaking_left_active_matches_retained" : "matchmaking_left"
+]);
+
+publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
+    "action" => "left",
+    "walletAddress" => $walletAddress,
+    "sessionToken" => $sessionToken,
+    "buckets" => $queuedBuckets
 ]);
