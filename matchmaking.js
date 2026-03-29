@@ -15,6 +15,9 @@ import {
     setPlayerMatches
 } from "./state/app-state.js";
 
+let refreshMatchCandidatesPromise = null;
+let refreshPlayerMatchesPromise = null;
+
 function isExpiredOpenMatch(match) {
     if (!match || Number(match.statusCode) !== 0 || !match.deadline) {
         return false;
@@ -98,6 +101,11 @@ function getBlockedBucketKeys(matches = getPlayerMatches()) {
 }
 
 async function refreshMatchCandidates() {
+    if (refreshMatchCandidatesPromise) {
+        return refreshMatchCandidatesPromise;
+    }
+
+    refreshMatchCandidatesPromise = (async () => {
     const walletAddress = getWalletState().account;
     const isInQueue = getIsInQueue();
 
@@ -164,9 +172,21 @@ async function refreshMatchCandidates() {
         setAvailableMatches([]);
         renderAvailableMatches([]);
     }
+    })();
+
+    try {
+        return await refreshMatchCandidatesPromise;
+    } finally {
+        refreshMatchCandidatesPromise = null;
+    }
 }
 
 async function refreshPlayerMatches() {
+    if (refreshPlayerMatchesPromise) {
+        return refreshPlayerMatchesPromise;
+    }
+
+    refreshPlayerMatchesPromise = (async () => {
     const walletAddress = getWalletState().account;
 
     if (!walletAddress) {
@@ -216,6 +236,13 @@ async function refreshPlayerMatches() {
         setPlayerMatches([]);
         setPlayerMatchesHydrated(false);
         renderPlayerMatches([]);
+    }
+    })();
+
+    try {
+        return await refreshPlayerMatchesPromise;
+    } finally {
+        refreshPlayerMatchesPromise = null;
     }
 }
 

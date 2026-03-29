@@ -1,13 +1,14 @@
 import { ENDPOINTS, getJson, postJson } from "./api.js";
 import { getSessionToken } from "./session.js";
 import { stopHeartbeat } from "./heartbeat.js";
-import { refreshMatchCandidates, refreshPlayerMatches } from "./matchmaking.js";
+import { refreshMatchCandidates } from "./matchmaking.js";
 import { getActiveMatchBuckets } from "./features/matchmaking/walk-the-planck-contract.js";
 import { setQueues } from "./state/app-state.js";
 import { renderQueues, setStatus } from "./ui/render.js";
 
 let pollInterval = null;
 const POLL_MS = 5000;
+let refreshQueuesPromise = null;
 
 function markCommittedCountsUnknown(queues) {
     return (queues ?? []).map((queue) => ({
@@ -68,6 +69,11 @@ async function leaveQueue(walletAddress, sessionToken = getSessionToken(), optio
 }
 
 async function refreshQueues() {
+    if (refreshQueuesPromise) {
+        return refreshQueuesPromise;
+    }
+
+    refreshQueuesPromise = (async () => {
     try {
         const dataPromise = getJson(`${ENDPOINTS.queueStatus}?t=${Date.now()}`);
         const activeMatchBucketsPromise = getActiveMatchBuckets().catch((error) => {
@@ -85,10 +91,16 @@ async function refreshQueues() {
         setQueues(queues);
         renderQueues(queues);
         await refreshMatchCandidates();
-        await refreshPlayerMatches();
     } catch (err) {
         console.error(err);
         setStatus(`Failed to load queue status: ${err.message}`);
+    }
+    })();
+
+    try {
+        return await refreshQueuesPromise;
+    } finally {
+        refreshQueuesPromise = null;
     }
 }
 

@@ -291,7 +291,6 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
         await updateMatchmakingUI();
 
         setStatus(`Join confirmed on chain. Match #${matchId} is now locked in the queue bucket.`);
-        await refreshPlayerMatches();
         await refreshQueues();
     } catch (err) {
         console.error(err);
@@ -310,7 +309,7 @@ async function handleClaimMatchClick(matchId) {
         setStatus(`Claim transaction submitted: ${tx.hash}`);
         await tx.wait();
         setStatus(`Claim confirmed for match #${matchId}.`);
-        await refreshPlayerMatches();
+        await updateMatchmakingUI();
         await refreshQueues();
     } catch (err) {
         console.error(err);
@@ -326,7 +325,7 @@ async function handleClaimRefundClick(matchId) {
         setStatus(`Refund transaction submitted: ${tx.hash}`);
         await tx.wait();
         setStatus(`Refund confirmed for match #${matchId}.`);
-        await refreshPlayerMatches();
+        await updateMatchmakingUI();
         await refreshQueues();
     } catch (err) {
         console.error(err);
