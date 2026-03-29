@@ -195,44 +195,95 @@ function renderQueues(queues) {
         return;
     }
 
-    queueList.innerHTML = queues.map((q) => {
-        const hasCommittedCounts = q.committedCount != null && q.readyCount != null;
-        const matchable = q.matchable === true;
-        const readyText = hasCommittedCounts
-            ? `${q.readyCount} / ${q.maxPlayers}`
-            : `Unknown / ${q.maxPlayers}`;
-        const committedText = hasCommittedCounts
-            ? `${q.committedCount ?? 0}`
-            : "Unknown";
-        const statusLabel = hasCommittedCounts
-            ? (matchable ? "Matchable" : "Waiting")
-            : "Chain Needed";
-        const statusText = hasCommittedCounts
-            ? (matchable ? "Ready to fill now." : "Waiting for more players.")
-            : "Connect wallet on a supported chain to load committed players.";
+    const groupedQueues = queues.reduce((groups, queue) => {
+        const groupKey = Number(queue.maxPlayers) || 0;
+        if (!groups.has(groupKey)) {
+            groups.set(groupKey, []);
+        }
+
+        groups.get(groupKey).push(queue);
+        return groups;
+    }, new Map());
+
+    const orderedGroupKeys = [...groupedQueues.keys()].sort((a, b) => a - b);
+
+    queueList.innerHTML = orderedGroupKeys.map((groupKey) => {
+        const groupedCards = groupedQueues
+            .get(groupKey)
+            .slice()
+            .sort((a, b) => Number(a.entryFeeWei) - Number(b.entryFeeWei))
+            .map((q) => {
+                const hasCommittedCounts = q.committedCount != null && q.readyCount != null;
+                const matchable = q.matchable === true;
+                const readyCount = hasCommittedCounts ? Number(q.readyCount ?? 0) : 0;
+                const readyText = hasCommittedCounts
+                    ? `${readyCount} / ${q.maxPlayers}`
+                    : `Unknown / ${q.maxPlayers}`;
+                const committedText = hasCommittedCounts
+                    ? `${q.committedCount ?? 0}`
+                    : "Unknown";
+                const statusLabel = hasCommittedCounts
+                    ? (matchable ? "Matchable" : "Waiting")
+                    : "Chain Needed";
+                const statusText = hasCommittedCounts
+                    ? (matchable ? "Ready to fill now." : "Waiting for more players.")
+                    : "Connect wallet on a supported chain to load committed players.";
+                const peopleIcons = Array.from({ length: Number(q.maxPlayers) || 0 }, (_, index) => `
+                    <span class="queue-slot ${index < readyCount ? "is-filled" : ""}"></span>
+                `).join("");
+
+                return `
+                    <div
+                        class="queue-card ${matchable ? "is-matchable" : ""}"
+                        data-queue-card
+                        tabindex="0"
+                        role="button"
+                        aria-expanded="false"
+                    >
+                        <div class="queue-card-compact">
+                            <div class="queue-card-head">
+                                <div class="queue-title">${fromWei(q.entryFeeWei)} ETH</div>
+                                <div class="queue-status-pill ${matchable ? "is-matchable" : ""}">${statusLabel}</div>
+                            </div>
+                            <div class="queue-slots" aria-label="Ready slots">
+                                ${peopleIcons}
+                            </div>
+                            <div class="queue-compact-meta">
+                                <span class="queue-ready">${readyText}</span>
+                                <span>Q ${q.queuedCount ?? 0}</span>
+                                <span>C ${committedText}</span>
+                            </div>
+                        </div>
+                        <div class="queue-card-expanded">
+                            <div class="queue-metrics">
+                                <div class="queue-metric">
+                                    <span class="queue-metric-label">Ready</span>
+                                    <span class="queue-metric-value queue-ready">${readyText}</span>
+                                </div>
+                                <div class="queue-metric">
+                                    <span class="queue-metric-label">Queued</span>
+                                    <span class="queue-metric-value">${q.queuedCount ?? 0}</span>
+                                </div>
+                                <div class="queue-metric">
+                                    <span class="queue-metric-label">Committed</span>
+                                    <span class="queue-metric-value">${committedText}</span>
+                                </div>
+                            </div>
+                            <div class="queue-footnote">${statusText}</div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
 
         return `
-            <div class="queue-card ${matchable ? "is-matchable" : ""}">
-                <div class="queue-card-head">
-                    <div class="queue-title">${q.maxPlayers} Players | ${fromWei(q.entryFeeWei)} ETH</div>
-                    <div class="queue-status-pill ${matchable ? "is-matchable" : ""}">${statusLabel}</div>
+            <section class="queue-group">
+                <div class="queue-group-head">
+                    <h4 class="queue-group-title">${groupKey} Players</h4>
                 </div>
-                <div class="queue-metrics">
-                    <div class="queue-metric">
-                        <span class="queue-metric-label">Ready</span>
-                        <span class="queue-metric-value queue-ready">${readyText}</span>
-                    </div>
-                    <div class="queue-metric">
-                        <span class="queue-metric-label">Queued</span>
-                        <span class="queue-metric-value">${q.queuedCount ?? 0}</span>
-                    </div>
-                    <div class="queue-metric">
-                        <span class="queue-metric-label">Committed</span>
-                        <span class="queue-metric-value">${committedText}</span>
-                    </div>
+                <div class="queue-group-grid">
+                    ${groupedCards}
                 </div>
-                <div class="queue-footnote">${statusText}</div>
-            </div>
+            </section>
         `;
     }).join("");
 }
@@ -357,6 +408,31 @@ if (activityTabs) {
         if (!button || !activityTabs.contains(button)) return;
 
         setActivityTab(button.dataset.activityTab);
+    });
+}
+
+if (queueList) {
+    queueList.addEventListener("click", (event) => {
+        const card = event.target.closest("[data-queue-card]");
+        if (!card || !queueList.contains(card)) return;
+
+        queueList.querySelectorAll("[data-queue-card].is-expanded").forEach((activeCard) => {
+            if (activeCard === card) return;
+            activeCard.classList.remove("is-expanded");
+            activeCard.setAttribute("aria-expanded", "false");
+        });
+
+        const isExpanded = card.classList.toggle("is-expanded");
+        card.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+    });
+
+    queueList.addEventListener("keydown", (event) => {
+        const card = event.target.closest("[data-queue-card]");
+        if (!card || !queueList.contains(card)) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+
+        event.preventDefault();
+        card.click();
     });
 }
 
