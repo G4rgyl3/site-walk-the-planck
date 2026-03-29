@@ -16,6 +16,7 @@ if (!is_array($input)) {
 
 $walletAddress = strtolower(trim($input["walletAddress"] ?? ""));
 $sessionToken = trim((string)($input["sessionToken"] ?? ""));
+$operationId = trim((string)($input["operationId"] ?? ""));
 $matchSizes = $input["matchSizes"] ?? [];
 $entryFees = $input["entryFeesWei"] ?? [];
 $blockedCombinationsInput = $input["blockedCombinations"] ?? [];
@@ -38,6 +39,12 @@ if (!preg_match('/^0x[a-f0-9]{40}$/', $walletAddress)) {
 if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $sessionToken)) {
     http_response_code(400);
     echo json_encode(["error" => "Invalid sessionToken"]);
+    exit;
+}
+
+if ($operationId !== "" && !preg_match('/^[A-Za-z0-9_-]{1,128}$/', $operationId)) {
+    http_response_code(400);
+    echo json_encode(["error" => "Invalid operationId"]);
     exit;
 }
 
@@ -257,6 +264,7 @@ publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
     "action" => $shouldMatchmake ? "entered" : "updated",
     "walletAddress" => $walletAddress,
     "sessionToken" => $sessionToken,
+    "operationId" => $operationId !== "" ? $operationId : null,
     "buckets" => array_values($queueCombinations),
     "blockedBuckets" => $blockedCombinations
 ]);

@@ -15,7 +15,7 @@ import {
     joinPublishedLobby
 } from "./walk-the-planck-contract.js";
 import { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches } from "../../matchmaking.js";
-import { leaveQueue, refreshQueues, startPolling } from "../../queue.js";
+import { createQueueOperationId, leaveQueue, refreshQueues, startPolling, suppressQueueOperation } from "../../queue.js";
 import { resetSessionToken } from "../../session.js";
 import {
     getIsInQueue,
@@ -181,6 +181,7 @@ async function updateMatchmakingUI() {
 
 async function joinQueue() {
     const walletAddress = getWalletState().account;
+    const operationId = createQueueOperationId();
 
     if (!walletAddress) {
         setStatus("Connect wallet first.");
@@ -208,9 +209,11 @@ async function joinQueue() {
     }
 
     try {
+        suppressQueueOperation(operationId);
         await postJson(ENDPOINTS.enterMatchmaking, {
             walletAddress: walletAddress.toLowerCase(),
             sessionToken: getSessionTokenValue(),
+            operationId,
             matchSizes,
             entryFeesWei,
             blockedCombinations: Array.from(blockedBucketKeys).map((key) => {
@@ -240,7 +243,9 @@ async function joinQueue() {
 
 async function handleLeaveQueueClick() {
     const walletAddress = getWalletState().account;
-    await leaveQueue(walletAddress);
+    await leaveQueue(walletAddress, getSessionTokenValue(), {
+        operationId: createQueueOperationId()
+    });
     resetMatchmakingState();
     await updateMatchmakingUI();
 }

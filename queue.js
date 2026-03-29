@@ -1,5 +1,4 @@
 import { ENDPOINTS, getJson, postJson } from "./api.js";
-import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
 import { stopHeartbeat } from "./heartbeat.js";
 import { refreshMatchCandidates } from "./matchmaking.js";
@@ -10,6 +9,7 @@ import { renderQueues, setStatus } from "./ui/render.js";
 let refreshQueuesPromise = null;
 let queueEventsSubscribed = false;
 const committedMatchExpiryTimers = new Map();
+const suppressedQueueOperations = new Map();
 
 function normalizeQueues(queues) {
     return (queues ?? []).map(normalizeQueue);
@@ -31,6 +31,38 @@ function normalizeQueue(queue) {
 
 function getBucketKey(maxPlayers, entryFeeWei) {
     return `${Number(maxPlayers)}:${String(entryFeeWei)}`;
+}
+
+function createQueueOperationId() {
+    if (globalThis.crypto?.randomUUID) {
+        return globalThis.crypto.randomUUID();
+    }
+
+    return `queue-op-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function suppressQueueOperation(operationId) {
+    const normalizedOperationId = String(operationId || "");
+    if (!normalizedOperationId) {
+        return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+        suppressedQueueOperations.delete(normalizedOperationId);
+    }, 10000);
+
+    suppressedQueueOperations.set(normalizedOperationId, timeoutId);
+}
+
+function shouldSuppressQueueEvent(payload) {
+    const operationId = String(payload?.operationId || "");
+    if (!operationId || !suppressedQueueOperations.has(operationId)) {
+        return false;
+    }
+
+    clearTimeout(suppressedQueueOperations.get(operationId));
+    suppressedQueueOperations.delete(operationId);
+    return true;
 }
 
 function clearCommittedMatchExpiry(matchId) {
@@ -92,17 +124,7 @@ function applySoftQueueMutation(eventDetail) {
         clearCommittedMatchExpiry(String(payload.matchId || ""));
     }
 
-    const currentWalletAddress = (getWalletState().account || "").toLowerCase();
-    const eventWalletAddress = String(payload.walletAddress || "").toLowerCase();
-    const currentSessionToken = String(getSessionToken() || "");
-    const eventSessionToken = String(payload.sessionToken || "");
-
-    if (
-        currentWalletAddress &&
-        eventWalletAddress === currentWalletAddress &&
-        currentSessionToken &&
-        eventSessionToken === currentSessionToken
-    ) {
+    if (shouldSuppressQueueEvent(payload)) {
         return;
     }
 
@@ -159,14 +181,16 @@ function applySoftQueueMutation(eventDetail) {
 }
 
 async function leaveQueue(walletAddress, sessionToken = getSessionToken(), options = {}) {
-    const { silent = false } = options;
+    const { operationId = createQueueOperationId(), silent = false } = options;
 
     if (!walletAddress) return;
 
     try {
+        suppressQueueOperation(operationId);
         await postJson(ENDPOINTS.leaveMatchmaking, {
             walletAddress: walletAddress.toLowerCase(),
-            sessionToken
+            sessionToken,
+            operationId
         });
 
         stopHeartbeat();
@@ -218,7 +242,9 @@ function startPolling() {
 }
 
 export {
+    createQueueOperationId,
     leaveQueue,
     refreshQueues,
+    suppressQueueOperation,
     startPolling
 };

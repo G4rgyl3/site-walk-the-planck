@@ -9,6 +9,7 @@ $input = json_decode(file_get_contents("php://input"), true);
 
 $walletAddress = strtolower(trim($input["walletAddress"] ?? ""));
 $sessionToken = trim((string)($input["sessionToken"] ?? ""));
+$operationId = trim((string)($input["operationId"] ?? ""));
 
 if (!preg_match('/^0x[a-f0-9]{40}$/', $walletAddress)) {
     http_response_code(400);
@@ -19,6 +20,12 @@ if (!preg_match('/^0x[a-f0-9]{40}$/', $walletAddress)) {
 if ($sessionToken === "") {
     http_response_code(400);
     echo json_encode(["error" => "Invalid sessionToken"]);
+    exit;
+}
+
+if ($operationId !== "" && !preg_match('/^[A-Za-z0-9_-]{1,128}$/', $operationId)) {
+    http_response_code(400);
+    echo json_encode(["error" => "Invalid operationId"]);
     exit;
 }
 
@@ -100,5 +107,6 @@ publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
     "action" => "left",
     "walletAddress" => $walletAddress,
     "sessionToken" => $sessionToken,
+    "operationId" => $operationId !== "" ? $operationId : null,
     "buckets" => $queuedBuckets
 ]);

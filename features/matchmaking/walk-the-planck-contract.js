@@ -4,7 +4,7 @@ import { BaseContract } from "@ohlabs/js-chain/contract/base-contract.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 
 const CONTRACT_ENVIRONMENTS = ["test", "production"];
-const CHAIN_ACTIONS_ENABLED = false;
+const CHAIN_ACTIONS_ENABLED = true;
 const CHAIN_HISTORY_READS_ENABLED = false;
 const MATCH_STATUSES = {
     0: "Open",
