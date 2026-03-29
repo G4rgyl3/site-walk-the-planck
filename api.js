@@ -11,6 +11,7 @@ const ENDPOINTS = {
     heartbeat: "player_heartbeat.php",
     queueStatus: "queue_status.php",
     matchCandidates : "get_match_candidates.php",
+    syncActiveMatchBuckets: "sync_active_match_buckets.php",
     streamEvents: "stream_events.php"
 }
 

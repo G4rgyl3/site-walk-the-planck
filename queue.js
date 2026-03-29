@@ -1,6 +1,7 @@
 import { ENDPOINTS, getJson, postJson } from "./api.js";
 import { getSessionToken } from "./session.js";
 import { stopHeartbeat } from "./heartbeat.js";
+import { getActiveMatchBuckets } from "./features/matchmaking/walk-the-planck-contract.js";
 import { refreshMatchCandidates } from "./matchmaking.js";
 import { onQueuePreferencesChanged } from "./lib/matchmaking-events.js";
 import { getQueues, setQueues } from "./state/app-state.js";
@@ -214,6 +215,15 @@ async function refreshQueues() {
 
     refreshQueuesPromise = (async () => {
     try {
+        try {
+            const activeMatchBuckets = await getActiveMatchBuckets();
+            await postJson(ENDPOINTS.syncActiveMatchBuckets, {
+                buckets: activeMatchBuckets
+            });
+        } catch (error) {
+            console.warn("Active committed match sync skipped.", error);
+        }
+
         const data = await getJson(`${ENDPOINTS.queueStatus}?t=${Date.now()}`);
         const queues = normalizeQueues(data.queues || []);
         setQueues(queues);

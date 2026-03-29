@@ -249,7 +249,11 @@ function normalizeActiveMatchBucket(bucket) {
         playerCount: toNumber(bucket?.playerCount),
         entryFeeWei: toStringValue(bucket?.entryFee),
         deadline: toNumber(bucket?.deadline),
-        matchId: toStringValue(bucket?.matchId)
+        matchId: toStringValue(bucket?.matchId),
+        statusCode: toNumber(bucket?.status),
+        players: Array.isArray(bucket?.players)
+            ? bucket.players.map((player) => String(player).toLowerCase())
+            : []
     };
 }
 
@@ -291,10 +295,6 @@ async function getPlayerMatchDetails(playerAddress) {
 }
 
 async function getActiveMatchBuckets() {
-    if (!CHAIN_HISTORY_READS_ENABLED) {
-        return [];
-    }
-
     const contract = new WalkThePlanckContract();
     const buckets = await contract.getActiveMatchBuckets();
 

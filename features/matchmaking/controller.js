@@ -413,6 +413,7 @@ async function syncWalletState(walletState) {
     lastWalletAccount = walletAddress;
     updateWalletUI();
     void updateMatchmakingUI();
+    void refreshQueues();
 }
 
 function bindEvents() {
@@ -469,6 +470,7 @@ async function initMatchmakingController() {
     await initializeWallet();
     updateWalletUI();
     await updateMatchmakingUI();
+    await refreshQueues();
 }
 
 export { initMatchmakingController, updateMatchmakingUI };
