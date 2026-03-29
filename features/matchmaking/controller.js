@@ -7,10 +7,11 @@ import {
 } from "@ohlabs/js-chain/utility/wallet.js";
 import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
 import {
-    CHAIN_CALLS_ENABLED,
+    CHAIN_ACTIONS_ENABLED,
     claimPublishedMatch,
     claimPublishedRefund,
     decodeContractError,
+    getPublishedMatchSnapshot,
     joinPublishedLobby
 } from "./walk-the-planck-contract.js";
 import { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches } from "../../matchmaking.js";
@@ -245,7 +246,7 @@ async function handleLeaveQueueClick() {
 }
 
 async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
-    if (!CHAIN_CALLS_ENABLED) {
+    if (!CHAIN_ACTIONS_ENABLED) {
         setStatus("Chain calls are temporarily disabled.");
         return;
     }
@@ -277,13 +278,27 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
         }
 
         try {
+            const matchSnapshot = await getPublishedMatchSnapshot(matchId).catch(() => null);
             await postJson(ENDPOINTS.confirmMatchJoin, {
                 walletAddress: walletAddress.toLowerCase(),
                 sessionToken: getSessionTokenValue(),
                 matchId,
                 maxPlayers,
-                entryFeeWei
+                entryFeeWei,
+                deadline: Number(matchSnapshot?.deadline ?? 0)
             });
+
+            if (
+                matchSnapshot &&
+                Number(matchSnapshot.statusCode) === 0 &&
+                Number(matchSnapshot.playerCount) >= Number(matchSnapshot.maxPlayers)
+            ) {
+                await postJson(ENDPOINTS.deactivateMatch, {
+                    matchId,
+                    maxPlayers,
+                    entryFeeWei
+                });
+            }
         } catch (syncError) {
             console.error(syncError);
             setStatus(`Join confirmed on chain for match #${matchId}, but DB sync failed: ${syncError.message}`);
@@ -309,7 +324,7 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
 }
 
 async function handleClaimMatchClick(matchId) {
-    if (!CHAIN_CALLS_ENABLED) {
+    if (!CHAIN_ACTIONS_ENABLED) {
         setStatus("Chain calls are temporarily disabled.");
         return;
     }
@@ -330,7 +345,7 @@ async function handleClaimMatchClick(matchId) {
 }
 
 async function handleClaimRefundClick(matchId) {
-    if (!CHAIN_CALLS_ENABLED) {
+    if (!CHAIN_ACTIONS_ENABLED) {
         setStatus("Chain calls are temporarily disabled.");
         return;
     }

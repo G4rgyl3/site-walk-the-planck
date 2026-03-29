@@ -32,10 +32,24 @@ $queuedSql = "
     GROUP BY pmp.max_players, pmp.entry_fee_wei
 ";
 
+$committedSql = "
+    SELECT
+        psm.max_players,
+        psm.entry_fee_wei,
+        COUNT(*) AS committed_count
+    FROM player_session_matches psm
+    WHERE psm.state = 'active'
+    GROUP BY psm.max_players, psm.entry_fee_wei
+";
+
 $queuedStmt = $pdo->prepare($queuedSql);
 $queuedStmt->bindValue(":live_window", $liveWindowSeconds, PDO::PARAM_INT);
 $queuedStmt->execute();
 $queuedRows = $queuedStmt->fetchAll();
+
+$committedStmt = $pdo->prepare($committedSql);
+$committedStmt->execute();
+$committedRows = $committedStmt->fetchAll();
 
 $queuedCounts = [];
 foreach ($queuedRows as $row) {
@@ -43,19 +57,27 @@ foreach ($queuedRows as $row) {
     $queuedCounts[$key] = (int)$row["queued_count"];
 }
 
+$committedCounts = [];
+foreach ($committedRows as $row) {
+    $key = $row["max_players"] . ":" . $row["entry_fee_wei"];
+    $committedCounts[$key] = (int)$row["committed_count"];
+}
+
 $queues = [];
 foreach ($allowedPlayerCounts as $maxPlayers) {
     foreach ($allowedEntryFees as $entryFeeWei) {
         $key = $maxPlayers . ":" . $entryFeeWei;
         $queuedCount = $queuedCounts[$key] ?? 0;
+        $committedCount = $committedCounts[$key] ?? 0;
+        $readyCount = $queuedCount + $committedCount;
 
         $queues[] = [
             "maxPlayers" => $maxPlayers,
             "entryFeeWei" => $entryFeeWei,
             "queuedCount" => $queuedCount,
-            "committedCount" => null,
-            "readyCount" => null,
-            "matchable" => null
+            "committedCount" => $committedCount,
+            "readyCount" => $readyCount,
+            "matchable" => $readyCount >= $maxPlayers
         ];
     }
 }

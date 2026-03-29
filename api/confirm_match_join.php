@@ -18,6 +18,7 @@ $sessionToken = trim((string)($input["sessionToken"] ?? ""));
 $matchId = trim((string)($input["matchId"] ?? ""));
 $maxPlayers = (int)($input["maxPlayers"] ?? 0);
 $entryFeeWei = trim((string)($input["entryFeeWei"] ?? ""));
+$deadline = (int)($input["deadline"] ?? 0);
 
 $allowedSizes = [2, 3, 4, 5];
 $allowedFees = [
@@ -143,6 +144,7 @@ publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
     "walletAddress" => $walletAddress,
     "sessionToken" => $sessionToken,
     "matchId" => $matchId,
+    "deadline" => $deadline > 0 ? $deadline : null,
     "buckets" => [[
         "maxPlayers" => $maxPlayers,
         "entryFeeWei" => $entryFeeWei

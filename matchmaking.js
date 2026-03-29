@@ -1,5 +1,5 @@
 import { getPlayerMatchDetails } from "./features/matchmaking/walk-the-planck-contract.js";
-import { ENDPOINTS, getJson, postJson } from "./api.js";
+import { ENDPOINTS, getJson } from "./api.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
 import { formatSelections, renderAvailableMatches, renderPlayerMatches, setMatchmakingState } from "./ui/render.js";
@@ -63,33 +63,6 @@ function hasQueueCountableMatch(matches) {
         !isExpiredOpenMatch(match) &&
         Number(match.playerCount) < Number(match.maxPlayers)
     );
-}
-
-function getDeactivatableBuckets(matches) {
-    const buckets = new Map();
-
-    matches.forEach((match) => {
-        const shouldDeactivate =
-            isExpiredOpenMatch(match) ||
-            (match.statusCode === 0 && Number(match.playerCount) >= Number(match.maxPlayers)) ||
-            match.statusCode === 1 ||
-            match.isClaimable ||
-            match.isRefundable;
-
-        if (!shouldDeactivate) {
-            return;
-        }
-
-        const key = `${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`;
-        if (!buckets.has(key)) {
-            buckets.set(key, {
-                maxPlayers: Number(match.maxPlayers),
-                entryFeeWei: String(match.entryFeeWei)
-            });
-        }
-    });
-
-    return [...buckets.values()];
 }
 
 function getBlockedBucketKeys(matches = getPlayerMatches()) {
@@ -206,17 +179,6 @@ async function refreshPlayerMatches() {
             setPendingMatchSyncId("");
         }
         renderPlayerMatches(matches);
-
-        const bucketsToDeactivate = getDeactivatableBuckets(matches);
-        for (const bucket of bucketsToDeactivate) {
-            await postJson(ENDPOINTS.deactivateMatchBucket, {
-                walletAddress: walletAddress.toLowerCase(),
-                sessionToken: getSessionToken(),
-                maxPlayers: bucket.maxPlayers,
-                entryFeeWei: bucket.entryFeeWei
-            });
-        }
-
     } catch (err) {
         console.error(err);
         setPlayerMatches([]);

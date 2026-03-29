@@ -44,6 +44,26 @@ try {
         ":sessionToken" => $sessionToken
     ]);
 
+    $activeBucketsStmt = $pdo->prepare("
+        SELECT max_players, entry_fee_wei
+        FROM player_session_matches
+        WHERE wallet_address = :wallet
+          AND session_token = :sessionToken
+        FOR UPDATE
+    ");
+    $activeBucketsStmt->execute([
+        ":wallet" => $walletAddress,
+        ":sessionToken" => $sessionToken
+    ]);
+
+    $activeBuckets = array_map(
+        static fn(array $bucket) => [
+            "maxPlayers" => (int)($bucket["max_players"] ?? 0),
+            "entryFeeWei" => (string)($bucket["entry_fee_wei"] ?? "")
+        ],
+        $activeBucketsStmt->fetchAll()
+    );
+
     $deletedMatchesStmt = $pdo->prepare("
         DELETE FROM player_session_matches
         WHERE wallet_address = :wallet
@@ -83,5 +103,5 @@ publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
     "action" => "active_matches_released",
     "walletAddress" => $walletAddress,
     "sessionToken" => $sessionToken,
-    "buckets" => []
+    "buckets" => $activeBuckets
 ]);
