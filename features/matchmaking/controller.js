@@ -13,7 +13,8 @@ import {
     decodeContractError,
     joinPublishedLobby
 } from "./walk-the-planck-contract.js";
-import { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches } from "../../matchmaking.js";
+import { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches, scheduleRefreshPlayerMatches } from "../../matchmaking.js";
+import { onQueuePreferencesChanged } from "../../lib/matchmaking-events.js";
 import { createQueueOperationId, leaveQueue, refreshQueues, startPolling, suppressQueueOperation, truthUpCommittedMatches } from "../../queue.js";
 import { resetSessionToken } from "../../session.js";
 import {
@@ -45,6 +46,7 @@ import {
 
 let unsubscribeWallet = null;
 let lastWalletAccount = null;
+let unsubscribeQueueEvents = null;
 
 function isExpiredOpenMatch(match) {
     if (!match || Number(match.statusCode) !== 0 || !match.deadline) {
@@ -454,8 +456,28 @@ function bindEvents() {
 
 }
 
+function bindMatchmakingEventRefresh() {
+    unsubscribeQueueEvents?.();
+    unsubscribeQueueEvents = onQueuePreferencesChanged((eventDetail) => {
+        const payload = eventDetail?.payload;
+        if (!payload) {
+            return;
+        }
+
+        if (
+            payload.action === "match_join_confirmed" ||
+            payload.action === "committed_match_closed" ||
+            payload.action === "committed_deactivated" ||
+            payload.action === "active_matches_released"
+        ) {
+            scheduleRefreshPlayerMatches();
+        }
+    });
+}
+
 async function initMatchmakingController() {
     bindEvents();
+    bindMatchmakingEventRefresh();
     setupMultiSelectChips(matchSizeSelector);
     setupMultiSelectChips(entryFeeSelector);
     syncSelectionsFromDom();

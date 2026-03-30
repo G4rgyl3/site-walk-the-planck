@@ -17,6 +17,7 @@ import {
 
 let refreshMatchCandidatesPromise = null;
 let refreshPlayerMatchesPromise = null;
+let playerMatchRefreshTimerId = null;
 
 function isExpiredOpenMatch(match) {
     if (!match || Number(match.statusCode) !== 0 || !match.deadline) {
@@ -194,4 +195,15 @@ async function refreshPlayerMatches() {
     }
 }
 
-export { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches }
+function scheduleRefreshPlayerMatches(delayMs = 300) {
+    if (playerMatchRefreshTimerId) {
+        window.clearTimeout(playerMatchRefreshTimerId);
+    }
+
+    playerMatchRefreshTimerId = window.setTimeout(() => {
+        playerMatchRefreshTimerId = null;
+        void refreshPlayerMatches();
+    }, delayMs);
+}
+
+export { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches, scheduleRefreshPlayerMatches }
