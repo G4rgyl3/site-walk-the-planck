@@ -1,10 +1,14 @@
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
+import { refreshPlayerMatches } from "../../matchmaking.js";
 import {
+    getCurrentGameMatch,
+    getCurrentGameMatchHydrated,
     getPlayerMatches,
     getPlayerMatchesHydrated,
     getSessionTokenValue,
     subscribe as subscribeAppState
 } from "../../state/app-state.js";
+import { dismissCurrentGameMatch } from "../../matchmaking.js";
 import {
     playbackBackdrop,
     playbackClipMeta,
@@ -34,6 +38,7 @@ let revealCompletionTimerId = null;
 let suspenseTransitionTimerId = null;
 let loserSequenceStepByMatchId = new Map();
 let playbackTransitionTimerId = null;
+let playbackMatchRefreshIntervalId = null;
 let previousRenderedMode = "hidden";
 let playbackUnlocked = false;
 let playbackTrackingKey = "";
@@ -137,7 +142,7 @@ function ensurePlaybackTracking(matches = getPlayerMatches()) {
         playbackShownMatchIds = readShownMatchIds(nextTrackingKey);
     }
 
-    if (!getPlayerMatchesHydrated()) {
+    if (!getPlayerMatchesHydrated() && !getCurrentGameMatchHydrated()) {
         return false;
     }
 
@@ -182,7 +187,7 @@ function getEligibleMatch(matches = getPlayerMatches()) {
         return null;
     }
 
-    return matches.find((match) => {
+    const eligiblePlayerMatch = matches.find((match) => {
         const matchId = getMatchIdNumber(match);
 
         if (!matchId || matchId <= dismissedThroughMatchId) {
@@ -199,6 +204,34 @@ function getEligibleMatch(matches = getPlayerMatches()) {
             (Number(match.statusCode) === 0 && Number(match.playerCount) >= Number(match.maxPlayers))
         );
     }) ?? null;
+
+    if (eligiblePlayerMatch) {
+        return eligiblePlayerMatch;
+    }
+
+    const currentGameMatch = getCurrentGameMatch();
+    const currentGameMatchId = getMatchIdNumber(currentGameMatch);
+    if (
+        !currentGameMatch ||
+        !currentGameMatchId ||
+        currentGameMatchId <= dismissedThroughMatchId ||
+        hasPlaybackWindowBeenShown(currentGameMatch.id)
+    ) {
+        return null;
+    }
+
+    return {
+        ...currentGameMatch,
+        id: String(currentGameMatch.id ?? currentGameMatch.matchId ?? ""),
+        matchId: String(currentGameMatch.matchId ?? currentGameMatch.id ?? ""),
+        maxPlayers: Number(currentGameMatch.maxPlayers ?? 0),
+        playerCount: Number(currentGameMatch.playerCount ?? currentGameMatch.maxPlayers ?? 0),
+        entryFeeWei: String(currentGameMatch.entryFeeWei ?? ""),
+        statusCode: Number(currentGameMatch.statusCode ?? 0),
+        isClaimable: false,
+        isRefundable: false,
+        loser: ""
+    };
 }
 
 function getCurrentMatch() {
@@ -207,6 +240,22 @@ function getCurrentMatch() {
 
     if (activeMatch) {
         return activeMatch;
+    }
+
+    const currentGameMatch = getCurrentGameMatch();
+    if (currentGameMatch && String(currentGameMatch.id ?? currentGameMatch.matchId ?? "") === String(activeFlowMatchId)) {
+        return {
+            ...currentGameMatch,
+            id: String(currentGameMatch.id ?? currentGameMatch.matchId ?? ""),
+            matchId: String(currentGameMatch.matchId ?? currentGameMatch.id ?? ""),
+            maxPlayers: Number(currentGameMatch.maxPlayers ?? 0),
+            playerCount: Number(currentGameMatch.playerCount ?? currentGameMatch.maxPlayers ?? 0),
+            entryFeeWei: String(currentGameMatch.entryFeeWei ?? ""),
+            statusCode: Number(currentGameMatch.statusCode ?? 0),
+            isClaimable: false,
+            isRefundable: false,
+            loser: ""
+        };
     }
 
     const eligibleMatch = getEligibleMatch(matches);
@@ -523,6 +572,36 @@ function clearPlaybackTransitionTimer() {
     }
 }
 
+function clearPlaybackMatchRefreshInterval() {
+    if (playbackMatchRefreshIntervalId) {
+        window.clearInterval(playbackMatchRefreshIntervalId);
+        playbackMatchRefreshIntervalId = null;
+    }
+}
+
+function shouldRefreshPlaybackMatch(match) {
+    if (!match) {
+        return false;
+    }
+
+    return Number(match.statusCode) !== 2;
+}
+
+function syncPlaybackMatchRefreshLoop(match) {
+    if (!shouldRefreshPlaybackMatch(match)) {
+        clearPlaybackMatchRefreshInterval();
+        return;
+    }
+
+    if (playbackMatchRefreshIntervalId) {
+        return;
+    }
+
+    playbackMatchRefreshIntervalId = window.setInterval(() => {
+        void refreshPlayerMatches();
+    }, 4000);
+}
+
 function getPlaybackTransitionClass(mode) {
     if (mode === "winner") {
         return "transition-victory";
@@ -635,6 +714,7 @@ function renderPlaybackPanel() {
         clearRevealCompletionTimer();
         clearSuspenseTransitionTimer();
         clearPlaybackTransitionTimer();
+        clearPlaybackMatchRefreshInterval();
         applyPlaybackVisualState("hidden", false);
         playbackPanel.classList.add("hidden");
         previousRenderedMode = "hidden";
@@ -725,6 +805,8 @@ function renderPlaybackPanel() {
     } else {
         clearRevealCompletionTimer();
     }
+
+    syncPlaybackMatchRefreshLoop(match);
 }
 
 function handlePlaybackAction(action) {
@@ -771,6 +853,7 @@ function handlePlaybackAction(action) {
         clearSuspenseTransitionTimer();
         clearPlaybackTransitionTimer();
         playbackVideo?.pause();
+        void dismissCurrentGameMatch(match.id);
         renderPlaybackPanel();
         return;
     default:
@@ -844,6 +927,7 @@ function initPlaybackController() {
             clearRevealCompletionTimer();
             clearSuspenseTransitionTimer();
             clearPlaybackTransitionTimer();
+            clearPlaybackMatchRefreshInterval();
         }
 
         if (currentMatch && Number(currentMatch.statusCode) !== 2) {

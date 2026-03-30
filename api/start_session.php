@@ -66,6 +66,17 @@ try {
             ":wallet" => $walletAddress,
             ":previousSessionToken" => $previousSessionToken
         ]);
+
+        $pdo->prepare("
+            UPDATE player_current_matches
+            SET session_token = :nextSessionToken
+            WHERE wallet_address = :wallet
+              AND session_token = :previousSessionToken
+        ")->execute([
+            ":nextSessionToken" => $sessionToken,
+            ":wallet" => $walletAddress,
+            ":previousSessionToken" => $previousSessionToken
+        ]);
     }
 
     $stmt = $pdo->prepare("

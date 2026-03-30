@@ -61,6 +61,7 @@ if (!in_array($entryFeeWei, $allowedFees, true)) {
 
 $matchFilled = false;
 $removedCount = 0;
+$filledParticipants = [];
 
 try {
     $pdo->beginTransaction();
@@ -138,6 +139,52 @@ try {
     $matchFilled = $committedCount >= $maxPlayers;
 
     if ($matchFilled) {
+        $filledParticipantsStmt = $pdo->prepare("
+            SELECT wallet_address, session_token
+            FROM player_session_matches
+            WHERE match_id = :matchId
+            FOR UPDATE
+        ");
+        $filledParticipantsStmt->execute([
+            ":matchId" => $matchId
+        ]);
+        $filledParticipants = $filledParticipantsStmt->fetchAll();
+
+        $upsertCurrentMatchStmt = $pdo->prepare("
+            INSERT INTO player_current_matches (
+                wallet_address,
+                session_token,
+                match_id,
+                max_players,
+                entry_fee_wei,
+                state
+            ) VALUES (
+                :wallet,
+                :sessionToken,
+                :matchId,
+                :maxPlayers,
+                :entryFeeWei,
+                'active'
+            )
+            ON DUPLICATE KEY UPDATE
+                session_token = VALUES(session_token),
+                match_id = VALUES(match_id),
+                max_players = VALUES(max_players),
+                entry_fee_wei = VALUES(entry_fee_wei),
+                state = VALUES(state),
+                updated_at = CURRENT_TIMESTAMP
+        ");
+
+        foreach ($filledParticipants as $participant) {
+            $upsertCurrentMatchStmt->execute([
+                ":wallet" => strtolower((string)$participant["wallet_address"]),
+                ":sessionToken" => (string)$participant["session_token"],
+                ":matchId" => $matchId,
+                ":maxPlayers" => $maxPlayers,
+                ":entryFeeWei" => $entryFeeWei
+            ]);
+        }
+
         $deleteFilledMatchStmt = $pdo->prepare("
             DELETE FROM player_session_matches
             WHERE match_id = :matchId

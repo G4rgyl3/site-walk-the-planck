@@ -7,6 +7,8 @@ const state = {
     selectedEntryFeesWei: [],
     queues: [],
     availableMatches: [],
+    currentGameMatch: null,
+    currentGameMatchHydrated: false,
     playerMatches: [],
     playerMatchesHydrated: false,
     pendingMatchSyncId: ""
@@ -25,6 +27,8 @@ function getState() {
         selectedEntryFeesWei: [...state.selectedEntryFeesWei],
         queues: [...state.queues],
         availableMatches: [...state.availableMatches],
+        currentGameMatch: state.currentGameMatch ? { ...state.currentGameMatch } : null,
+        currentGameMatchHydrated: state.currentGameMatchHydrated,
         playerMatches: [...state.playerMatches],
         playerMatchesHydrated: state.playerMatchesHydrated,
         pendingMatchSyncId: state.pendingMatchSyncId
@@ -89,6 +93,24 @@ function getAvailableMatches() {
     return [...state.availableMatches];
 }
 
+function setCurrentGameMatch(match) {
+    state.currentGameMatch = match ? { ...match } : null;
+    notify();
+}
+
+function getCurrentGameMatch() {
+    return state.currentGameMatch ? { ...state.currentGameMatch } : null;
+}
+
+function getCurrentGameMatchHydrated() {
+    return state.currentGameMatchHydrated;
+}
+
+function setCurrentGameMatchHydrated(currentGameMatchHydrated) {
+    state.currentGameMatchHydrated = !!currentGameMatchHydrated;
+    notify();
+}
+
 function setPlayerMatches(matches) {
     state.playerMatches = Array.isArray(matches) ? [...matches] : [];
     notify();
@@ -119,6 +141,8 @@ function setPendingMatchSyncId(pendingMatchSyncId) {
 function resetMatchmakingState() {
     state.isInQueue = false;
     state.availableMatches = [];
+    state.currentGameMatch = null;
+    state.currentGameMatchHydrated = false;
     state.playerMatches = [];
     state.playerMatchesHydrated = false;
     state.pendingMatchSyncId = "";
@@ -127,6 +151,8 @@ function resetMatchmakingState() {
 
 export {
     getAvailableMatches,
+    getCurrentGameMatch,
+    getCurrentGameMatchHydrated,
     getIsInQueue,
     getPendingMatchSyncId,
     getPlayerMatches,
@@ -139,6 +165,8 @@ export {
     notify,
     resetMatchmakingState,
     setAvailableMatches,
+    setCurrentGameMatch,
+    setCurrentGameMatchHydrated,
     setIsInQueue,
     setPendingMatchSyncId,
     setPlayerMatchesHydrated,

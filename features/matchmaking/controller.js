@@ -13,11 +13,18 @@ import {
     decodeContractError,
     joinPublishedLobby
 } from "./walk-the-planck-contract.js";
-import { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches, scheduleRefreshPlayerMatches } from "../../matchmaking.js";
+import {
+    hasMatchCandidate,
+    refreshCurrentGameMatch,
+    refreshMatchCandidates,
+    refreshPlayerMatches,
+    scheduleRefreshPlayerMatches
+} from "../../matchmaking.js";
 import { onQueuePreferencesChanged } from "../../lib/matchmaking-events.js";
 import { createQueueOperationId, leaveQueue, refreshQueues, startPolling, suppressQueueOperation, truthUpCommittedMatches } from "../../queue.js";
 import { resetSessionToken } from "../../session.js";
 import {
+    getCurrentGameMatch,
     getIsInQueue,
     getPlayerMatches,
     getSelectedPreferences,
@@ -83,6 +90,11 @@ function getWalletActionErrorMessage(err) {
 }
 
 function hasBlockingMatch(matches = getPlayerMatches()) {
+    const currentGameMatch = getCurrentGameMatch();
+    if (currentGameMatch?.id || currentGameMatch?.matchId) {
+        return true;
+    }
+
     return matches.some((match) =>
         match.isClaimable ||
         match.isRefundable ||
@@ -92,7 +104,7 @@ function hasBlockingMatch(matches = getPlayerMatches()) {
 }
 
 function getBlockedBucketKeys(matches = getPlayerMatches()) {
-    return new Set(
+    const blockedKeys = new Set(
         matches
             .filter((match) =>
                 (match.statusCode === 0 && !isExpiredOpenMatch(match)) ||
@@ -100,6 +112,13 @@ function getBlockedBucketKeys(matches = getPlayerMatches()) {
             )
             .map((match) => `${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`)
     );
+
+    const currentGameMatch = getCurrentGameMatch();
+    if (currentGameMatch?.maxPlayers && currentGameMatch?.entryFeeWei) {
+        blockedKeys.add(`${Number(currentGameMatch.maxPlayers)}:${String(currentGameMatch.entryFeeWei)}`);
+    }
+
+    return blockedKeys;
 }
 
 async function startPlayerSession(walletAddress, sessionToken) {
@@ -146,6 +165,7 @@ function setupMultiSelectChips(container) {
 }
 
 async function updateMatchmakingUI() {
+    await refreshCurrentGameMatch();
     await refreshPlayerMatches();
 
     const isInQueue = getIsInQueue();
@@ -405,11 +425,13 @@ async function syncWalletState(walletState) {
     if (walletAddress) {
         void (async () => {
             await truthUpCommittedMatches();
+            await refreshCurrentGameMatch();
             await refreshQueues();
         })();
         return;
     }
 
+    void refreshCurrentGameMatch();
     void refreshQueues();
 }
 
@@ -470,6 +492,7 @@ function bindMatchmakingEventRefresh() {
             payload.action === "committed_deactivated" ||
             payload.action === "active_matches_released"
         ) {
+            void refreshCurrentGameMatch();
             scheduleRefreshPlayerMatches();
         }
     });
@@ -487,6 +510,7 @@ async function initMatchmakingController() {
     await initializeWallet();
     updateWalletUI();
     await truthUpCommittedMatches();
+    await refreshCurrentGameMatch();
     await updateMatchmakingUI();
     await refreshQueues();
 }

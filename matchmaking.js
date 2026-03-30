@@ -1,15 +1,18 @@
 import { getPlayerMatchDetails } from "./features/matchmaking/walk-the-planck-contract.js";
-import { ENDPOINTS, getJson } from "./api.js";
+import { ENDPOINTS, getJson, postJson } from "./api.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
 import { formatSelections, renderAvailableMatches, renderPlayerMatches, setMatchmakingState } from "./ui/render.js";
 import {
     getAvailableMatches,
+    getCurrentGameMatch,
     getIsInQueue,
     getPendingMatchSyncId,
     getPlayerMatches,
     getQueues,
     setAvailableMatches,
+    setCurrentGameMatch,
+    setCurrentGameMatchHydrated,
     setPendingMatchSyncId,
     setPlayerMatchesHydrated,
     setPlayerMatches
@@ -17,6 +20,7 @@ import {
 
 let refreshMatchCandidatesPromise = null;
 let refreshPlayerMatchesPromise = null;
+let refreshCurrentGameMatchPromise = null;
 let playerMatchRefreshTimerId = null;
 
 function isExpiredOpenMatch(match) {
@@ -67,11 +71,18 @@ function hasQueueCountableMatch(matches) {
 }
 
 function getBlockedBucketKeys(matches = getPlayerMatches()) {
-    return new Set(
+    const blockedKeys = new Set(
         matches
             .filter((match) => match.statusCode === 0 || match.statusCode === 1)
             .map((match) => `${Number(match.maxPlayers)}:${String(match.entryFeeWei)}`)
     );
+
+    const currentGameMatch = getCurrentGameMatch();
+    if (currentGameMatch?.maxPlayers && currentGameMatch?.entryFeeWei) {
+        blockedKeys.add(`${Number(currentGameMatch.maxPlayers)}:${String(currentGameMatch.entryFeeWei)}`);
+    }
+
+    return blockedKeys;
 }
 
 async function refreshMatchCandidates() {
@@ -195,6 +206,68 @@ async function refreshPlayerMatches() {
     }
 }
 
+async function refreshCurrentGameMatch() {
+    if (refreshCurrentGameMatchPromise) {
+        return refreshCurrentGameMatchPromise;
+    }
+
+    refreshCurrentGameMatchPromise = (async () => {
+        const walletAddress = getWalletState().account;
+        const sessionToken = getSessionToken();
+
+        if (!walletAddress || !sessionToken) {
+            setCurrentGameMatch(null);
+            setCurrentGameMatchHydrated(true);
+            return;
+        }
+
+        try {
+            const data = await getJson(
+                `${ENDPOINTS.currentGameMatch}?walletAddress=${encodeURIComponent(walletAddress.toLowerCase())}&sessionToken=${encodeURIComponent(sessionToken)}&t=${Date.now()}`
+            );
+            setCurrentGameMatch(data.currentMatch || null);
+            setCurrentGameMatchHydrated(true);
+        } catch (err) {
+            console.error(err);
+            setCurrentGameMatch(null);
+            setCurrentGameMatchHydrated(false);
+        }
+    })();
+
+    try {
+        return await refreshCurrentGameMatchPromise;
+    } finally {
+        refreshCurrentGameMatchPromise = null;
+    }
+}
+
+async function dismissCurrentGameMatch(matchId) {
+    const walletAddress = getWalletState().account;
+    const sessionToken = getSessionToken();
+
+    if (!walletAddress || !sessionToken) {
+        setCurrentGameMatch(null);
+        setCurrentGameMatchHydrated(true);
+        return;
+    }
+
+    try {
+        await postJson(ENDPOINTS.dismissCurrentGameMatch, {
+            walletAddress: walletAddress.toLowerCase(),
+            sessionToken,
+            matchId: String(matchId || "")
+        });
+    } catch (error) {
+        console.error(error);
+    } finally {
+        const currentMatch = getCurrentGameMatch();
+        if (!currentMatch || String(currentMatch.id || currentMatch.matchId || "") === String(matchId || "")) {
+            setCurrentGameMatch(null);
+        }
+        setCurrentGameMatchHydrated(true);
+    }
+}
+
 function scheduleRefreshPlayerMatches(delayMs = 300) {
     if (playerMatchRefreshTimerId) {
         window.clearTimeout(playerMatchRefreshTimerId);
@@ -206,4 +279,11 @@ function scheduleRefreshPlayerMatches(delayMs = 300) {
     }, delayMs);
 }
 
-export { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches, scheduleRefreshPlayerMatches }
+export {
+    dismissCurrentGameMatch,
+    hasMatchCandidate,
+    refreshCurrentGameMatch,
+    refreshMatchCandidates,
+    refreshPlayerMatches,
+    scheduleRefreshPlayerMatches
+}

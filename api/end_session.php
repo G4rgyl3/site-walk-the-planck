@@ -43,7 +43,24 @@ try {
     ]);
 
     $existingSession = $activeMatchStmt->fetch();
-    if ($existingSession && (int)$existingSession["active_match_count"] > 0) {
+    $currentGameMatchStmt = $pdo->prepare("
+        SELECT COUNT(*) AS current_game_match_count
+        FROM player_current_matches
+        WHERE wallet_address = :wallet
+          AND session_token = :sessionToken
+        FOR UPDATE
+    ");
+    $currentGameMatchStmt->execute([
+        ":wallet" => $walletAddress,
+        ":sessionToken" => $sessionToken
+    ]);
+
+    $currentGameMatch = $currentGameMatchStmt->fetch();
+
+    if (
+        ($existingSession && (int)$existingSession["active_match_count"] > 0) ||
+        ($currentGameMatch && (int)$currentGameMatch["current_game_match_count"] > 0)
+    ) {
         $pdo->commit();
         echo json_encode([
             "success" => true,
