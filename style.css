@@ -523,7 +523,7 @@
 
     .queue-group-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 12px;
     }
 
@@ -531,13 +531,20 @@
       position: relative;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
       border: 1px solid var(--border);
       border-radius: 18px;
       background: linear-gradient(180deg, rgba(9, 19, 39, 0.96), rgba(8, 15, 31, 0.98));
-      padding: 10px 12px;
+      min-height: 132px;
+      padding: 12px 14px;
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
       cursor: pointer;
-      transition: border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+      transform-origin: top center;
+      transition:
+        border-color 0.22s ease,
+        transform 0.22s ease,
+        box-shadow 0.22s ease,
+        background 0.22s ease;
     }
 
     .queue-card:hover,
@@ -567,32 +574,60 @@
         0 16px 32px rgba(18, 95, 62, 0.16);
     }
 
+    .queue-card.is-expanded {
+      z-index: 2;
+    }
+
     .queue-card-compact {
       display: grid;
-      gap: 8px;
+      gap: 10px;
+      align-content: start;
     }
 
     .queue-card-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 4px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      column-gap: 12px;
+      margin-bottom: 2px;
+      min-width: 0;
+    }
+
+    .queue-card.has-lock .queue-card-head {
       padding-right: 24px;
     }
 
     .queue-title {
       margin: 0;
-      font-size: 14px;
-      font-weight: 800;
+      min-width: 0;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      white-space: nowrap;
+      font-weight: 900;
       color: var(--text-main);
+    }
+
+    .queue-title-amount {
+      font-size: 20px;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+    }
+
+    .queue-title-unit {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-soft);
     }
 
     .queue-status-pill {
       flex: 0 0 auto;
       display: inline-flex;
       align-items: center;
-      padding: 4px 8px;
+      justify-self: end;
+      white-space: nowrap;
+      padding: 5px 10px;
       border-radius: 999px;
       border: 1px solid rgba(83, 103, 158, 0.28);
       background: rgba(12, 23, 43, 0.76);
@@ -613,7 +648,7 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      min-height: 18px;
+      min-height: 26px;
     }
 
     .queue-slot {
@@ -677,7 +712,8 @@
 
     .queue-compact-meta {
       display: flex;
-      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-start;
       gap: 6px;
       font-size: 11px;
       font-weight: 800;
@@ -724,28 +760,43 @@
     }
 
     .queue-card-expanded {
-      display: none;
-      margin-top: 10px;
-      padding-top: 10px;
+      display: block;
+      flex: 0 0 auto;
+      margin-top: 0;
+      padding-top: 0;
       border-top: 1px solid rgba(83, 103, 158, 0.18);
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transform: translateY(-4px);
+      transition:
+        max-height 0.26s ease,
+        opacity 0.2s ease,
+        transform 0.22s ease,
+        margin-top 0.22s ease,
+        padding-top 0.22s ease;
     }
 
     .queue-card:hover .queue-card-expanded,
     .queue-card:focus-visible .queue-card-expanded,
     .queue-card.is-expanded .queue-card-expanded {
-      display: block;
+      max-height: 320px;
+      opacity: 1;
+      margin-top: 10px;
+      padding-top: 10px;
+      transform: translateY(0);
     }
 
     .queue-metrics {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
+      grid-template-columns: repeat(3, minmax(74px, 1fr));
+      gap: 10px;
       margin-bottom: 8px;
     }
 
     .queue-metric {
       min-width: 0;
-      padding: 8px 9px;
+      padding: 8px 11px;
       border-radius: 12px;
       background: rgba(7, 17, 33, 0.62);
       border: 1px solid rgba(83, 103, 158, 0.16);
@@ -776,6 +827,12 @@
       font-size: 12px;
       color: var(--text-soft);
       line-height: 1.35;
+    }
+
+    @media (min-width: 900px) {
+      .queue-card.is-expanded {
+        grid-column: span 2;
+      }
     }
 
     .match-state-card {
@@ -1494,8 +1551,15 @@
       }
 
       .queue-card-head {
-        align-items: flex-start;
-        flex-direction: column;
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .queue-title-amount {
+        font-size: 18px;
+      }
+
+      .queue-title {
+        gap: 4px;
       }
 
       .queue-metrics {

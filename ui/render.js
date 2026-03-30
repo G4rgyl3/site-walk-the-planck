@@ -239,7 +239,7 @@ function renderQueues(queues) {
 
                 return `
                     <div
-                        class="queue-card ${matchable ? "is-matchable" : ""}"
+                        class="queue-card ${matchable ? "is-matchable" : ""} ${hasCommitted ? "has-lock" : ""}"
                         data-queue-card
                         tabindex="0"
                         role="button"
@@ -253,7 +253,10 @@ function renderQueues(queues) {
                         ` : ""}
                         <div class="queue-card-compact">
                             <div class="queue-card-head">
-                                <div class="queue-title">${fromWei(q.entryFeeWei)} ETH</div>
+                                <div class="queue-title">
+                                    <span class="queue-title-amount">${fromWei(q.entryFeeWei)}</span>
+                                    <span class="queue-title-unit">ETH</span>
+                                </div>
                                 <div class="queue-status-pill ${matchable ? "is-matchable" : ""}">${statusLabel}</div>
                             </div>
                             <div class="queue-slots" aria-label="Ready slots">
@@ -274,7 +277,7 @@ function renderQueues(queues) {
                                     <span class="queue-metric-value">${queuedCount}</span>
                                 </div>
                                 <div class="queue-metric">
-                                    <span class="queue-metric-label">Committed</span>
+                                    <span class="queue-metric-label">Joined</span>
                                     <span class="queue-metric-value">${committedText}</span>
                                 </div>
                             </div>
