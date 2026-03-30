@@ -5,7 +5,7 @@ import { getActiveMatchBuckets } from "./features/matchmaking/walk-the-planck-co
 import { refreshMatchCandidates } from "./matchmaking.js";
 import { onQueuePreferencesChanged } from "./lib/matchmaking-events.js";
 import { getQueues, setQueues } from "./state/app-state.js";
-import { renderQueues, setStatus } from "./ui/render.js";
+import { renderQueues, showToast } from "./ui/render.js";
 
 let refreshQueuesPromise = null;
 let queueEventsSubscribed = false;
@@ -207,13 +207,13 @@ async function leaveQueue(walletAddress, sessionToken = getSessionToken(), optio
 
         stopHeartbeat();
         if (!silent) {
-            setStatus("Left matchmaking.");
+            showToast("You left the queue.", { variant: "info" });
         }
         await refreshQueues();
     } catch (err) {
         console.error(err);
         if (!silent) {
-            setStatus(`Leave queue failed: ${err.message}`);
+            showToast(`Could not leave the queue: ${err.message}`);
         }
         throw err;
     }
@@ -234,7 +234,7 @@ async function refreshQueues() {
         await refreshMatchCandidates();
     } catch (err) {
         console.error(err);
-        setStatus(`Failed to load queue status: ${err.message}`);
+        showToast(`Could not load live planks: ${err.message}`);
     }
     })();
 

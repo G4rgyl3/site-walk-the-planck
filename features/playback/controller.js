@@ -335,10 +335,10 @@ function getModeConfig(mode, match) {
     case "turn_ready":
         return {
             entry: getEntry(PLAYBACK_ENTRY_IDS.turn),
-            kicker: "Resolving Soon",
-            title: `Match #${match.id} is ready`,
-            summary: "Your lobby is filled. Take your ceremonial turn to begin the suspense sequence.",
-            note: "This is the dramatic handoff into on-chain resolution. Once the match resolves, the outcome clip will take over automatically.",
+            kicker: "Crew Ready",
+            title: `Match #${match.id} is ready to sail`,
+            summary: "Your crew is assembled. Step forward to begin the fate sequence.",
+            note: "Once the sea decides, this window will roll straight into the outcome.",
             primaryLabel: "Walk the Planck",
             primaryAction: "start_turn",
             secondaryLabel: "",
@@ -349,10 +349,10 @@ function getModeConfig(mode, match) {
     case "turn_playing":
         return {
             entry: getEntry(PLAYBACK_ENTRY_IDS.turn),
-            kicker: "Resolving",
-            title: `Walking the Planck for match #${match.id}`,
-            summary: "The cinematic turn is playing while the app watches for the on-chain result.",
-            note: "Keep this window open. As soon as the contract reports resolution, the final outcome clip and close-out actions will replace this scene.",
+            kicker: "Fate In Motion",
+            title: `Walking the Planck in match #${match.id}`,
+            summary: "Hold steady while the ritual plays and the sea weighs your luck.",
+            note: "Stay with it. The outcome will take the helm as soon as the match resolves.",
             primaryLabel: "",
             primaryAction: "",
             secondaryLabel: "",
@@ -363,10 +363,10 @@ function getModeConfig(mode, match) {
     case "turn_waiting":
         return {
             entry: getEntry(PLAYBACK_ENTRY_IDS.turn),
-            kicker: "Resolving",
-            title: `Match #${match.id} is resolving`,
-            summary: "Your ceremonial turn is complete. Waiting for the chain to reveal the result.",
-            note: "The outcome clip will begin automatically as soon as the match resolves on chain.",
+            kicker: "Hold Fast",
+            title: `Match #${match.id} is awaiting its fate`,
+            summary: "The walk is done. Now the sea decides who stays aboard.",
+            note: "The outcome clip will begin the moment the result is known.",
             primaryLabel: "",
             primaryAction: "",
             secondaryLabel: "",
@@ -379,11 +379,11 @@ function getModeConfig(mode, match) {
             entry: getEntry(PLAYBACK_ENTRY_IDS.winner),
             kicker: "Victory",
             title: `You survived match #${match.id}`,
-            summary: "The chain resolved in your favor. Claim your winnings when you are ready.",
+            summary: "Fortune favored your crew. Claim your spoils when you are ready.",
             note: match.isClaimable
-                ? "Your winnings are ready to claim."
-                : "Your match is resolved and recorded on chain.",
-            primaryLabel: match.isClaimable ? "Claim Winnings" : "",
+                ? "Your spoils are ready to be claimed."
+                : "This result is settled and recorded on chain.",
+            primaryLabel: match.isClaimable ? "Claim Spoils" : "",
             primaryAction: match.isClaimable ? "claim_match" : "",
             secondaryLabel: "Close",
             secondaryAction: "dismiss_resolved",
@@ -396,7 +396,7 @@ function getModeConfig(mode, match) {
             kicker: "Defeat",
             title: `Match #${match.id} did not go your way`,
             summary: getLoserTaunt(match),
-            note: "Captain Planck has more to say. Stay with the sequence. The finale clip will follow automatically.",
+            note: "Captain Planck is not finished with ye yet. Stay with the sequence.",
             primaryLabel: "",
             primaryAction: "",
             secondaryLabel: "",
@@ -410,11 +410,11 @@ function getModeConfig(mode, match) {
             kicker: "Defeat",
             title: `Match #${match.id} did not go your way`,
             summary: match.isRefundable
-                ? "The chain resolved against you, but this result is refundable."
-                : "The chain resolved against you. Close out the result when you are ready.",
+                ? "The tide turned against you, but this result can still be refunded."
+                : "The tide turned against you. Close this out when you are ready.",
             note: match.isRefundable
-                ? "If this match is refundable, you can settle it here."
-                : "Use Close to clear the cinematic window and return to the lobby view.",
+                ? "If this match is refundable, settle it here."
+                : "Close this window and return to the lobby.",
             primaryLabel: match.isRefundable ? "Claim Refund" : "",
             primaryAction: match.isRefundable ? "claim_refund" : "",
             secondaryLabel: "Close",

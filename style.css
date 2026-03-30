@@ -1431,6 +1431,22 @@
         0 18px 38px rgba(0, 0, 0, 0.34);
     }
 
+    .toast-success {
+      --toast-accent: #7df0b1;
+      border-color: rgba(82, 240, 160, 0.34);
+      box-shadow:
+        0 0 0 1px rgba(82, 240, 160, 0.08),
+        0 18px 38px rgba(0, 0, 0, 0.34);
+    }
+
+    .toast-info {
+      --toast-accent: #8dcfff;
+      border-color: rgba(95, 209, 255, 0.3);
+      box-shadow:
+        0 0 0 1px rgba(95, 209, 255, 0.08),
+        0 18px 38px rgba(0, 0, 0, 0.34);
+    }
+
     .toast-message {
       padding: 14px 16px 16px;
       color: var(--text-main);

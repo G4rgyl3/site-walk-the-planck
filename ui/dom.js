@@ -2,7 +2,6 @@ const connectBtn = document.getElementById("connectBtn");
 const joinQueueBtn = document.getElementById("joinQueueBtn");
 const leaveQueueBtn = document.getElementById("leaveQueueBtn");
 const refreshQueueBtn = document.getElementById("refreshQueueBtn");
-const appStatus = document.getElementById("appStatus");
 const walletBox = document.getElementById("connectedWalletBox");
 const sessionBox = document.getElementById("sessionTokenBox");
 const activityTabs = document.getElementById("activityTabs");
@@ -38,7 +37,6 @@ const toastStack = document.getElementById("toastStack");
 
 export {
     activityTabs,
-    appStatus,
     availableMatchList,
     availableMatchPanel,
     connectBtn,

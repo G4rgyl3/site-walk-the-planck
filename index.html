@@ -102,11 +102,6 @@
             <div class="hint">Multi-select enabled. Let players join several fee tiers at once.</div>
           </div>
 
-          <div class="status-banner ready" id="playerStatusBanner">
-            <div class="status-line-strong">Ready for queue</div>
-            <div class="status-line" id="appStatus">Not connected.</div>
-          </div>
-
           <div class="button-row">
             <button type="button" class="btn btn-ready" id="joinQueueBtn">Join Queue</button>
             <button type="button" class="btn btn-leave" id="leaveQueueBtn">Leave Queue</button>
@@ -149,7 +144,7 @@
             <div class="available-match-badge">Game Window</div>
             <div class="available-match-title">Walk The Planck</div>
             <div class="available-match-subtitle">
-              Cinematic state playback for the match currently resolving on chain.
+              A cinematic watch of the match now sailing toward its fate.
             </div>
             <div class="playback-brand-strip">
               <div class="playback-brand-chip">
@@ -183,7 +178,7 @@
                 <div class="playback-video-overlay hidden" id="playbackVideoOverlay">
                   <div class="playback-video-overlay-title">Waiting For Fate</div>
                   <div class="playback-video-overlay-text">
-                    The turn is complete. Hold steady while the chain resolves your outcome.
+                    The walk is done. Hold fast while the sea reveals your fate.
                   </div>
                 </div>
               </div>
@@ -222,10 +217,10 @@
 
         <div class="available-match-panel hidden" id="availableMatchPanel">
           <div class="available-match-header">
-            <div class="available-match-badge">Match Found</div>
-            <div class="available-match-title">A match is ready to join</div>
+            <div class="available-match-badge">Crew Ready</div>
+            <div class="available-match-title">A plank is ready to board</div>
             <div class="available-match-subtitle" id="availableMatchSubtitle">
-              Choose one of your fillable match options below.
+              Choose the crew you want to board below.
             </div>
           </div>
 
@@ -243,7 +238,7 @@
               aria-selected="true"
               aria-controls="queueTabPanel"
             >
-              Live Buckets
+              Live Planks
             </button>
             <button
               type="button"
@@ -254,15 +249,15 @@
               aria-selected="false"
               aria-controls="historyTabPanel"
             >
-              Your Matches
+              Ship Log
             </button>
           </div>
 
           <div class="panel-tab-panel" id="queueTabPanel" data-activity-panel="queues" role="tabpanel" aria-labelledby="queueTabBtn">
             <div class="queue-panel-header" style="margin-top: 18px;">
-              <h3 class="panel-title" style="font-size: 18px; margin-bottom: 8px;">Live Buckets</h3>
+              <h3 class="panel-title" style="font-size: 18px; margin-bottom: 8px;">Live Planks</h3>
               <p class="panel-subtitle" style="margin-bottom: 0;">
-                Recently active players by match size and fee tier.
+                Recently active crews by match size and stake tier.
               </p>
             </div>
 
@@ -277,9 +272,9 @@
           <div class="panel-tab-panel hidden" id="historyTabPanel" data-activity-panel="history" role="tabpanel" aria-labelledby="historyTabBtn">
             <div class="available-match-header">
               <div class="available-match-badge">On-Chain</div>
-              <div class="available-match-title">Your matches</div>
+              <div class="available-match-title">Ship Log</div>
               <div class="available-match-subtitle" id="playerMatchSubtitle">
-                Match history, claim actions, and resolution details for this wallet.
+                Match history, claims, and settlement details for this wallet.
               </div>
             </div>
 

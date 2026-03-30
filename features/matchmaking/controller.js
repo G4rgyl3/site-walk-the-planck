@@ -46,7 +46,6 @@ import {
     formatSelections,
     setMatchmakingState,
     setSelectorsLocked,
-    setStatus,
     showToast,
     updateWalletUI
 } from "../../ui/render.js";
@@ -177,23 +176,23 @@ async function updateMatchmakingUI() {
     if (isInQueue) {
         setMatchmakingState({
             searching: true,
-            title: "Searching for matches",
-            detail: "You are in queue and being considered for any selected buckets.",
+            title: "Searching the seas",
+            detail: "Your wallet is in queue for the planks you selected.",
             meta: formatSelections()
         });
     } else if (activeOnChainMatch) {
         setMatchmakingState({
             searching: true,
-            title: "Active on-chain match",
-            detail: "You already have a live match in one bucket. You can still queue different buckets.",
-            meta: "The committed on-chain bucket is filtered out from queue re-entry."
+            title: "Crew already aboard",
+            detail: "You already have a live match underway in one plank.",
+            meta: "That plank is held aside until the match is settled."
         });
     } else {
         setMatchmakingState({
             searching: false,
             title: "Not in queue",
-            detail: "Select match sizes and entry fees, then click I'm Ready.",
-            meta: "No active matchmaking preferences."
+            detail: "Choose your match sizes and entry fees, then join the queue.",
+            meta: "No open planks selected."
         });
     }
 
@@ -205,7 +204,7 @@ async function joinQueue() {
     const operationId = createQueueOperationId();
 
     if (!walletAddress) {
-        setStatus("Connect wallet first.");
+        showToast("Connect your wallet first.", { variant: "info" });
         return;
     }
 
@@ -225,7 +224,7 @@ async function joinQueue() {
     }
 
     if (blockedPairs.length === matchSizes.length * entryFeesWei.length) {
-        setStatus("All selected buckets are already active on chain for this wallet.");
+        showToast("Those selected planks are already occupied by this wallet.", { variant: "info" });
         return;
     }
 
@@ -249,16 +248,16 @@ async function joinQueue() {
 
         setIsInQueue(true);
         await updateMatchmakingUI();
-        setStatus(
+        showToast(
             blockedPairs.length > 0
-                ? `Searching for matches... skipped active bucket selections: ${blockedPairs.join(", ")}`
-                : "Searching for matches..."
-        );
+                ? `Now searching. Skipped occupied planks: ${blockedPairs.join(", ")}`
+                : "Now searching for a crew."
+        , { variant: "success" });
         startHeartbeat();
         await refreshQueues();
     } catch (err) {
         console.error(err);
-        setStatus(`Ready request failed: ${err.message}`);
+        showToast(`Could not join the queue: ${err.message}`);
     }
 }
 
@@ -273,33 +272,33 @@ async function handleLeaveQueueClick() {
 
 async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
     if (!CHAIN_ACTIONS_ENABLED) {
-        setStatus("Chain calls are temporarily disabled.");
+        showToast("Chain actions are temporarily disabled.", { variant: "info" });
         return;
     }
 
     const walletAddress = getWalletState().account;
 
     if (!walletAddress) {
-        setStatus("Connect wallet first.");
+        showToast("Connect your wallet first.", { variant: "info" });
         return;
     }
 
     await refreshMatchCandidates();
 
     if (!hasMatchCandidate(maxPlayers, entryFeeWei)) {
-        setStatus("That match is no longer fillable. Choose another available option.");
+        showToast("That match is no longer ready to board. Choose another one.");
         return;
     }
 
     try {
-        setStatus(`Submitting join transaction for ${maxPlayers} players at ${entryFeeWei} wei...`);
+        showToast(`Boarding ${maxPlayers} players at ${entryFeeWei} wei...`, { variant: "info" });
         const { contract, tx } = await joinPublishedLobby(maxPlayers, entryFeeWei);
-        setStatus(`Transaction submitted: ${tx.hash}`);
+        showToast(`Transaction sent: ${tx.hash}`, { variant: "info" });
         const receipt = await tx.wait();
         const matchId = contract.getLobbyIdFromReceipt(receipt);
 
         if (!matchId) {
-            setStatus("Join confirmed on chain, but the app could not read the match id from the receipt.");
+            showToast("The boarding transaction landed, but the match id could not be read.");
             return;
         }
 
@@ -314,7 +313,7 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
             });
         } catch (syncError) {
             console.error(syncError);
-            setStatus(`Join confirmed on chain for match #${matchId}, but DB sync failed: ${syncError.message}`);
+            showToast(`Boarding confirmed for match #${matchId}, but the harbor ledger failed to sync.`);
             await refreshPlayerMatches();
             await refreshQueues();
             return;
@@ -324,11 +323,10 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
         setIsInQueue(false);
         await updateMatchmakingUI();
 
-        setStatus(`Join confirmed on chain. Match #${matchId} is now locked in the queue bucket.`);
+        showToast(`Boarding confirmed. Match #${matchId} is locked in.`, { variant: "success" });
         await refreshQueues();
     } catch (err) {
         console.error(err);
-        setStatus(`Join transaction failed: ${err.message}`);
         if (decodeContractError(err)?.name === "MatchNotOpen") {
             await refreshMatchCandidates();
         }
@@ -338,42 +336,40 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
 
 async function handleClaimMatchClick(matchId) {
     if (!CHAIN_ACTIONS_ENABLED) {
-        setStatus("Chain calls are temporarily disabled.");
+        showToast("Chain actions are temporarily disabled.", { variant: "info" });
         return;
     }
 
     try {
-        setStatus(`Submitting claim transaction for match #${matchId}...`);
+        showToast(`Claiming spoils for match #${matchId}...`, { variant: "info" });
         const { tx } = await claimPublishedMatch(matchId);
-        setStatus(`Claim transaction submitted: ${tx.hash}`);
+        showToast(`Claim sent: ${tx.hash}`, { variant: "info" });
         await tx.wait();
-        setStatus(`Claim confirmed for match #${matchId}.`);
+        showToast(`Spoils claimed for match #${matchId}.`, { variant: "success" });
         await updateMatchmakingUI();
         await refreshQueues();
     } catch (err) {
         console.error(err);
-        setStatus(`Claim failed: ${err.message}`);
         showToast(getWalletActionErrorMessage(err));
     }
 }
 
 async function handleClaimRefundClick(matchId) {
     if (!CHAIN_ACTIONS_ENABLED) {
-        setStatus("Chain calls are temporarily disabled.");
+        showToast("Chain actions are temporarily disabled.", { variant: "info" });
         return;
     }
 
     try {
-        setStatus(`Submitting refund claim for match #${matchId}...`);
+        showToast(`Claiming refund for match #${matchId}...`, { variant: "info" });
         const { tx } = await claimPublishedRefund(matchId);
-        setStatus(`Refund transaction submitted: ${tx.hash}`);
+        showToast(`Refund sent: ${tx.hash}`, { variant: "info" });
         await tx.wait();
-        setStatus(`Refund confirmed for match #${matchId}.`);
+        showToast(`Refund confirmed for match #${matchId}.`, { variant: "success" });
         await updateMatchmakingUI();
         await refreshQueues();
     } catch (err) {
         console.error(err);
-        setStatus(`Refund claim failed: ${err.message}`);
         showToast(getWalletActionErrorMessage(err));
     }
 }
@@ -381,7 +377,7 @@ async function handleClaimRefundClick(matchId) {
 function handleWalletStateChange(walletState) {
     void syncWalletState(walletState).catch((err) => {
         console.error(err);
-        setStatus(`Wallet lifecycle sync failed: ${err.message}`);
+        showToast(`Wallet sync failed: ${err.message}`);
         updateWalletUI();
     });
 }
@@ -401,11 +397,11 @@ async function syncWalletState(walletState) {
         await endPlayerSession(previousWalletAddress, previousSessionToken);
         const nextSessionToken = resetSessionToken();
         await startPlayerSession(walletAddress, nextSessionToken);
-        setStatus(`Wallet changed: ${walletAddress}`);
+        showToast(`Wallet connected: ${walletAddress}`, { variant: "success" });
     } else if (walletAddress && walletAddress !== previousWalletAddress) {
         const nextSessionToken = resetSessionToken();
         await startPlayerSession(walletAddress, nextSessionToken);
-        setStatus(`Wallet changed: ${walletAddress}`);
+        showToast(`Wallet connected: ${walletAddress}`, { variant: "success" });
     } else if (!walletAddress && previousWalletAddress) {
         if (getIsInQueue()) {
             await leaveQueue(previousWalletAddress, previousSessionToken);
@@ -415,7 +411,7 @@ async function syncWalletState(walletState) {
         resetMatchmakingState();
         await endPlayerSession(previousWalletAddress, previousSessionToken);
         resetSessionToken();
-        setStatus("Wallet disconnected.");
+        showToast("Wallet disconnected.", { variant: "info" });
     }
 
     lastWalletAccount = walletAddress;

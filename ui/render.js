@@ -5,7 +5,6 @@ import {
     activityTabs,
     availableMatchList,
     availableMatchPanel,
-    appStatus,
     connectBtn,
     entryFeeSelector,
     joinQueueBtn,
@@ -31,9 +30,7 @@ import {
 } from "../state/app-state.js";
 
 function setStatus(message) {
-    if (appStatus) {
-        appStatus.textContent = message;
-    }
+    showToast(message, { variant: "info" });
 }
 
 const TOAST_DEFAULT_DURATION = 4200;
@@ -115,7 +112,7 @@ function formatSelections() {
         ? entryFeesWei.map((wei) => `${fromWei(wei)} ETH`).join(", ")
         : "none";
 
-    return `Sizes: ${sizeText} | Fees: ${feeText}`;
+    return `Planks: ${sizeText} | Stakes: ${feeText}`;
 }
 
 function updateActionButtons() {
@@ -224,11 +221,11 @@ function renderQueues(queues) {
                     ? `${q.committedCount ?? 0}`
                     : "Unknown";
                 const statusLabel = hasCommittedCounts
-                    ? (matchable ? "Matchable" : "Waiting")
-                    : "Soft Queue";
+                    ? (matchable ? "Crew Ready" : "Waiting")
+                    : "Queue Only";
                 const statusText = hasCommittedCounts
-                    ? (matchable ? "Ready to fill now." : "Waiting for more players.")
-                    : "Showing DB-backed queued players only. Committed counts are currently unavailable.";
+                    ? (matchable ? "This plank can sail right now." : "Awaiting more crew for this plank.")
+                    : "Showing queued crew only. Joined crew will appear here once committed.";
                 const hasCommitted = Number(q.committedCount ?? 0) > 0;
                 const peopleIcons = Array.from({ length: Number(q.maxPlayers) || 0 }, (_, index) => `
                     <span class="queue-slot ${index < readyCount ? "is-filled" : ""}">
@@ -318,10 +315,10 @@ function renderAvailableMatches(matches) {
                     ${match.maxPlayers} Players | ${fromWei(match.entryFeeWei)} ETH
                 </div>
                 <div class="available-match-meta">
-                    ${match.readyCount} ready | Match is available now
+                    ${match.readyCount} ready | Crew is ready to sail
                 </div>
                 <div class="available-match-meta">
-                    Queued: ${match.queuedCount ?? 0} | Committed: ${match.committedCount ?? 0}
+                    Queued: ${match.queuedCount ?? 0} | Joined: ${match.committedCount ?? 0}
                 </div>
             </div>
             <button
@@ -330,7 +327,7 @@ function renderAvailableMatches(matches) {
                 data-max-players="${match.maxPlayers}"
                 data-entry-fee-wei="${match.entryFeeWei}"
             >
-                Join Match
+                Board Match
             </button>
         </div>
     `).join("");
@@ -396,7 +393,7 @@ function renderPlayerMatches(matches) {
                             class="btn btn-join-match"
                             data-claim-match-id="${match.id}"
                         >
-                            Claim
+                            Claim Spoils
                         </button>
                     ` : ""}
                     ${match.isRefundable ? `
