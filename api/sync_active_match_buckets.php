@@ -22,6 +22,7 @@ if (!is_array($buckets)) {
 $desiredRows = [];
 $desiredMatchIds = [];
 $walletAddresses = [];
+error_log("[walk-the-planck] sync_active_match_buckets received " . json_encode($buckets, JSON_UNESCAPED_SLASHES));
 
 foreach ($buckets as $bucket) {
     if (!is_array($bucket)) {
@@ -58,6 +59,12 @@ foreach ($buckets as $bucket) {
         $walletAddresses[$walletAddress] = true;
     }
 }
+
+error_log("[walk-the-planck] sync_active_match_buckets parsed " . json_encode([
+    "desiredRows" => array_values($desiredRows),
+    "desiredMatchIds" => array_values($desiredMatchIds),
+    "walletCount" => count($walletAddresses)
+], JSON_UNESCAPED_SLASHES));
 
 try {
     $pdo->beginTransaction();

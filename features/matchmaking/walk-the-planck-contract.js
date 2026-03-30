@@ -297,8 +297,12 @@ async function getPlayerMatchDetails(playerAddress) {
 async function getActiveMatchBuckets() {
     const contract = new WalkThePlanckContract();
     const buckets = await contract.getActiveMatchBuckets();
+    console.debug("[contract] raw active match buckets", buckets);
 
-    return (buckets ?? []).map(normalizeActiveMatchBucket);
+    const normalizedBuckets = (buckets ?? []).map(normalizeActiveMatchBucket);
+    console.debug("[contract] normalized active match buckets", normalizedBuckets);
+
+    return normalizedBuckets;
 }
 
 async function joinPublishedLobby(maxPlayers, entryFeeWei) {

@@ -130,6 +130,17 @@ function applySoftQueueMutation(eventDetail) {
         return;
     }
 
+    if (
+        payload.action === "match_join_confirmed" ||
+        payload.action === "committed_deactivated" ||
+        payload.action === "committed_match_closed" ||
+        payload.action === "active_matches_released"
+    ) {
+        console.debug("[queue] refreshing queues from DB for committed-state SSE", payload);
+        void refreshQueues();
+        return;
+    }
+
     const buckets = Array.isArray(payload.buckets) ? payload.buckets : [];
     if (buckets.length === 0) {
         return;
@@ -155,16 +166,6 @@ function applySoftQueueMutation(eventDetail) {
             nextQueue.queuedCount += 1;
         } else if (payload.action === "left") {
             nextQueue.queuedCount = Math.max(0, nextQueue.queuedCount - 1);
-        } else if (payload.action === "match_join_confirmed") {
-            nextQueue.queuedCount = Math.max(0, nextQueue.queuedCount - 1);
-            nextQueue.committedCount += 1;
-        } else if (
-            payload.action === "committed_deactivated" ||
-            payload.action === "committed_match_closed" ||
-            payload.action === "active_matches_released"
-        ) {
-            const removedCount = Number(payload.removedCount ?? 1);
-            nextQueue.committedCount = Math.max(0, nextQueue.committedCount - removedCount);
         } else {
             return queue;
         }
@@ -248,6 +249,18 @@ async function truthUpCommittedMatches() {
     try {
         const activeMatchBuckets = await getActiveMatchBuckets();
         console.debug("[queue] truth-up active match buckets from chain", activeMatchBuckets);
+        console.debug(
+            "[queue] truth-up active match bucket summary",
+            (activeMatchBuckets || []).map((bucket) => ({
+                matchId: bucket.matchId,
+                maxPlayers: bucket.maxPlayers,
+                playerCount: bucket.playerCount,
+                entryFeeWei: bucket.entryFeeWei,
+                deadline: bucket.deadline,
+                statusCode: bucket.statusCode,
+                players: bucket.players
+            }))
+        );
         const result = await postJson(ENDPOINTS.syncActiveMatchBuckets, {
             buckets: activeMatchBuckets
         });
