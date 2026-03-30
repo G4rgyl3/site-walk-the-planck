@@ -59,6 +59,13 @@ echo json_encode([
     "removedCount" => $removedCount
 ]);
 
+error_log("[walk-the-planck] deactivate_match result " . json_encode([
+    "matchId" => $matchId,
+    "maxPlayers" => $maxPlayers,
+    "entryFeeWei" => $entryFeeWei,
+    "removedCount" => $removedCount
+], JSON_UNESCAPED_SLASHES));
+
 if ($removedCount > 0) {
     publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
         "action" => "committed_match_closed",

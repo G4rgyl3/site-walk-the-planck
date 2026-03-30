@@ -59,6 +59,9 @@ if (!in_array($entryFeeWei, $allowedFees, true)) {
     exit;
 }
 
+$matchFilled = false;
+$removedCount = 0;
+
 try {
     $pdo->beginTransaction();
 
@@ -122,6 +125,31 @@ try {
         ":entryFeeWei" => $entryFeeWei
     ]);
 
+    $matchCountStmt = $pdo->prepare("
+        SELECT COUNT(*) AS committed_count
+        FROM player_session_matches
+        WHERE match_id = :matchId
+        FOR UPDATE
+    ");
+    $matchCountStmt->execute([
+        ":matchId" => $matchId
+    ]);
+    $committedCount = (int)($matchCountStmt->fetch()["committed_count"] ?? 0);
+    $matchFilled = $committedCount >= $maxPlayers;
+
+    if ($matchFilled) {
+        $deleteFilledMatchStmt = $pdo->prepare("
+            DELETE FROM player_session_matches
+            WHERE match_id = :matchId
+        ");
+        $deleteFilledMatchStmt->execute([
+            ":matchId" => $matchId
+        ]);
+        $removedCount = (int)$deleteFilledMatchStmt->rowCount();
+    } else {
+        $removedCount = 0;
+    }
+
     $pdo->commit();
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
@@ -145,7 +173,9 @@ error_log("[walk-the-planck] match_join_confirmed emit " . json_encode([
     "matchId" => $matchId,
     "maxPlayers" => $maxPlayers,
     "entryFeeWei" => $entryFeeWei,
-    "deadline" => $deadline > 0 ? $deadline : null
+    "deadline" => $deadline > 0 ? $deadline : null,
+    "matchFilled" => $matchFilled,
+    "removedCount" => $removedCount
 ], JSON_UNESCAPED_SLASHES));
 
 publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
@@ -159,3 +189,15 @@ publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
         "entryFeeWei" => $entryFeeWei
     ]]
 ]);
+
+if ($matchFilled && $removedCount > 0) {
+    publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
+        "action" => "committed_match_closed",
+        "matchId" => $matchId,
+        "removedCount" => $removedCount,
+        "buckets" => [[
+            "maxPlayers" => $maxPlayers,
+            "entryFeeWei" => $entryFeeWei
+        ]]
+    ]);
+}

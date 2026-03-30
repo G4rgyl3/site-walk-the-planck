@@ -11,7 +11,6 @@ import {
     claimPublishedMatch,
     claimPublishedRefund,
     decodeContractError,
-    getPublishedMatchSnapshot,
     joinPublishedLobby
 } from "./walk-the-planck-contract.js";
 import { hasMatchCandidate, refreshMatchCandidates, refreshPlayerMatches } from "../../matchmaking.js";
@@ -283,27 +282,14 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
         }
 
         try {
-            const matchSnapshot = await getPublishedMatchSnapshot(matchId).catch(() => null);
             await postJson(ENDPOINTS.confirmMatchJoin, {
                 walletAddress: walletAddress.toLowerCase(),
                 sessionToken: getSessionTokenValue(),
                 matchId,
                 maxPlayers,
                 entryFeeWei,
-                deadline: Number(matchSnapshot?.deadline ?? 0)
+                deadline: 0
             });
-
-            if (
-                matchSnapshot &&
-                Number(matchSnapshot.statusCode) === 0 &&
-                Number(matchSnapshot.playerCount) >= Number(matchSnapshot.maxPlayers)
-            ) {
-                await postJson(ENDPOINTS.deactivateMatch, {
-                    matchId,
-                    maxPlayers,
-                    entryFeeWei
-                });
-            }
         } catch (syncError) {
             console.error(syncError);
             setStatus(`Join confirmed on chain for match #${matchId}, but DB sync failed: ${syncError.message}`);
