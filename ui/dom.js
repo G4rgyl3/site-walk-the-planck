@@ -8,6 +8,7 @@ const activityTabs = document.getElementById("activityTabs");
 const queueTabBtn = document.getElementById("queueTabBtn");
 const historyTabBtn = document.getElementById("historyTabBtn");
 const queueList = document.getElementById("queueList");
+const matchStateCard = document.getElementById("matchStateCard");
 const matchStateDot = document.getElementById("matchStateDot");
 const matchStateTitle = document.getElementById("matchStateTitle");
 const matchStateDetail = document.getElementById("matchStateDetail");
@@ -45,6 +46,7 @@ export {
     joinQueueBtn,
     leaveQueueBtn,
     matchSizeSelector,
+    matchStateCard,
     matchStateDetail,
     matchStateDot,
     matchStateMeta,

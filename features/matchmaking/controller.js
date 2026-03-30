@@ -178,21 +178,24 @@ async function updateMatchmakingUI() {
             searching: true,
             title: "Searching the seas",
             detail: "Your wallet is in queue for the planks you selected.",
-            meta: formatSelections()
+            meta: formatSelections(),
+            tone: "searching"
         });
     } else if (activeOnChainMatch) {
         setMatchmakingState({
             searching: true,
             title: "Crew already aboard",
             detail: "You already have a live match underway in one plank.",
-            meta: "That plank is held aside until the match is settled."
+            meta: "That plank is held aside until the match is settled.",
+            tone: "active"
         });
     } else {
         setMatchmakingState({
             searching: false,
             title: "Not in queue",
             detail: "Choose your match sizes and entry fees, then join the queue.",
-            meta: "No open planks selected."
+            meta: "No open planks selected.",
+            tone: "idle"
         });
     }
 

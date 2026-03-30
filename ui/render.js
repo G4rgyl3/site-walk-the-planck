@@ -10,6 +10,7 @@ import {
     joinQueueBtn,
     leaveQueueBtn,
     matchSizeSelector,
+    matchStateCard,
     matchStateDetail,
     matchStateDot,
     matchStateMeta,
@@ -104,15 +105,14 @@ function shortenWalletAddress(walletAddress) {
 function formatSelections() {
     const { matchSizes, entryFeesWei } = getSelectedPreferences();
 
-    const sizeText = matchSizes.length
-        ? matchSizes.map((n) => `${n}p`).join(", ")
-        : "none";
-
-    const feeText = entryFeesWei.length
-        ? entryFeesWei.map((wei) => `${fromWei(wei)} ETH`).join(", ")
-        : "none";
-
-    return `Planks: ${sizeText} | Stakes: ${feeText}`;
+    return {
+        planks: matchSizes.length
+            ? matchSizes.map((n) => `${n}p`)
+            : [],
+        stakes: entryFeesWei.length
+            ? entryFeesWei.map((wei) => `${fromWei(wei)} ETH`)
+            : []
+    };
 }
 
 function updateActionButtons() {
@@ -447,14 +447,41 @@ if (queueList) {
 
 setActivityTab(activeActivityTab);
 
-function setMatchmakingState({ searching, title, detail, meta }) {
+function setMatchmakingState({ searching, title, detail, meta, tone }) {
     if (!matchStateDot || !matchStateTitle || !matchStateDetail || !matchStateMeta) return;
 
     matchStateDot.classList.remove("idle", "searching");
     matchStateDot.classList.add(searching ? "searching" : "idle");
+    const nextTone = tone || (searching ? "searching" : "idle");
+    matchStateCard?.classList.remove("tone-idle", "tone-searching", "tone-active");
+    matchStateCard?.classList.add(`tone-${nextTone}`);
     matchStateTitle.textContent = title;
     matchStateDetail.textContent = detail;
-    matchStateMeta.textContent = meta;
+
+    const hasStructuredMeta = meta && typeof meta === "object" && !Array.isArray(meta);
+    if (hasStructuredMeta) {
+        const planks = Array.isArray(meta.planks) ? meta.planks : [];
+        const stakes = Array.isArray(meta.stakes) ? meta.stakes : [];
+
+        matchStateMeta.innerHTML = `
+            <div class="match-state-meta-chips">
+                ${planks.length > 0 ? `
+                    <div class="match-state-meta-group">
+                        <span class="match-state-meta-group-label">Planks</span>
+                        ${planks.map((plank) => `<span class="match-state-meta-chip">${plank}</span>`).join("")}
+                    </div>
+                ` : ""}
+                ${stakes.length > 0 ? `
+                    <div class="match-state-meta-group">
+                        <span class="match-state-meta-group-label">Stakes</span>
+                        ${stakes.map((stake) => `<span class="match-state-meta-chip">${stake}</span>`).join("")}
+                    </div>
+                ` : ""}
+            </div>
+        `;
+    } else {
+        matchStateMeta.textContent = meta;
+    }
 }
 
 export {
