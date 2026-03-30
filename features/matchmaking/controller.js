@@ -164,8 +164,8 @@ function setupMultiSelectChips(container) {
 }
 
 async function updateMatchmakingUI() {
-    await refreshCurrentGameMatch();
     await refreshPlayerMatches();
+    await refreshCurrentGameMatch();
 
     const isInQueue = getIsInQueue();
     const activeOnChainMatch = hasBlockingMatch();
@@ -424,13 +424,16 @@ async function syncWalletState(walletState) {
     if (walletAddress) {
         void (async () => {
             await truthUpCommittedMatches();
+            await refreshPlayerMatches();
             await refreshCurrentGameMatch();
             await refreshQueues();
         })();
         return;
     }
 
-    void refreshCurrentGameMatch();
+    void refreshPlayerMatches().finally(() => {
+        void refreshCurrentGameMatch();
+    });
     void refreshQueues();
 }
 
@@ -509,6 +512,7 @@ async function initMatchmakingController() {
     await initializeWallet();
     updateWalletUI();
     await truthUpCommittedMatches();
+    await refreshPlayerMatches();
     await refreshCurrentGameMatch();
     await updateMatchmakingUI();
     await refreshQueues();
