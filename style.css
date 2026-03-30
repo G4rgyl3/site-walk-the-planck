@@ -789,14 +789,14 @@
 
     .queue-metrics {
       display: grid;
-      grid-template-columns: repeat(3, minmax(74px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(3, minmax(82px, 1fr));
+      gap: 12px;
       margin-bottom: 8px;
     }
 
     .queue-metric {
       min-width: 0;
-      padding: 8px 11px;
+      padding: 9px 13px;
       border-radius: 12px;
       background: rgba(7, 17, 33, 0.62);
       border: 1px solid rgba(83, 103, 158, 0.16);
