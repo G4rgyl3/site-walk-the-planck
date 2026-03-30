@@ -177,7 +177,7 @@ async function updateMatchmakingUI() {
         setMatchmakingState({
             searching: true,
             title: "Searching the seas",
-            detail: "Your wallet is in queue for the planks you selected.",
+            detail: "Your wallet is in queue and being considered for the planks you selected.",
             meta: formatSelections(),
             tone: "searching"
         });

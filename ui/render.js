@@ -188,7 +188,7 @@ function renderQueues(queues) {
     if (!queueList) return;
 
     if (!Array.isArray(queues) || queues.length === 0) {
-        queueList.innerHTML = '<div class="queue-card">No live queues right now.</div>';
+        queueList.innerHTML = '<div class="queue-card">No crews are gathering at the harbor right now.</div>';
         return;
     }
 
@@ -216,16 +216,16 @@ function renderQueues(queues) {
                 const readyCount = hasCommittedCounts ? Number(q.readyCount ?? 0) : queuedCount;
                 const readyText = hasCommittedCounts
                     ? `${readyCount} / ${q.maxPlayers}`
-                    : `${queuedCount} queued`;
+                    : `${queuedCount} in harbor`;
                 const committedText = hasCommittedCounts
                     ? `${q.committedCount ?? 0}`
                     : "Unknown";
                 const statusLabel = hasCommittedCounts
-                    ? (matchable ? "Crew Ready" : "Waiting")
+                    ? (matchable ? "Crew Ready" : "Moored")
                     : "Queue Only";
                 const statusText = hasCommittedCounts
-                    ? (matchable ? "This plank can sail right now." : "Awaiting more crew for this plank.")
-                    : "Showing queued crew only. Joined crew will appear here once committed.";
+                    ? (matchable ? "This ship can set sail right now." : "Awaiting more crew before this ship can sail.")
+                    : "Showing harbored crew only. Boarded crew will appear here once committed.";
                 const hasCommitted = Number(q.committedCount ?? 0) > 0;
                 const peopleIcons = Array.from({ length: Number(q.maxPlayers) || 0 }, (_, index) => `
                     <span class="queue-slot ${index < readyCount ? "is-filled" : ""}">
@@ -270,11 +270,11 @@ function renderQueues(queues) {
                                     <span class="queue-metric-value queue-ready">${readyText}</span>
                                 </div>
                                 <div class="queue-metric">
-                                    <span class="queue-metric-label">Queued</span>
+                                    <span class="queue-metric-label">Harbor</span>
                                     <span class="queue-metric-value">${queuedCount}</span>
                                 </div>
                                 <div class="queue-metric">
-                                    <span class="queue-metric-label">Joined</span>
+                                    <span class="queue-metric-label">Boarded</span>
                                     <span class="queue-metric-value">${committedText}</span>
                                 </div>
                             </div>
@@ -315,10 +315,10 @@ function renderAvailableMatches(matches) {
                     ${match.maxPlayers} Players | ${fromWei(match.entryFeeWei)} ETH
                 </div>
                 <div class="available-match-meta">
-                    ${match.readyCount} ready | Crew is ready to sail
+                    ${match.readyCount} ready | Crew is ready to set sail
                 </div>
                 <div class="available-match-meta">
-                    Queued: ${match.queuedCount ?? 0} | Joined: ${match.committedCount ?? 0}
+                    Harbor: ${match.queuedCount ?? 0} | Boarded: ${match.committedCount ?? 0}
                 </div>
             </div>
             <button
@@ -327,7 +327,7 @@ function renderAvailableMatches(matches) {
                 data-max-players="${match.maxPlayers}"
                 data-entry-fee-wei="${match.entryFeeWei}"
             >
-                Board Match
+                Board Ship
             </button>
         </div>
     `).join("");
