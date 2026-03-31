@@ -7,6 +7,7 @@ header("Expires: 0");
 
 require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/session_cleanup.php";
+require_once __DIR__ . "/matchmaking_events.php";
 
 $allowedPlayerCounts = [2, 3, 4, 5];
 $allowedEntryFees = [
@@ -18,7 +19,10 @@ $allowedEntryFees = [
 ];
 
 $liveWindowSeconds = 30;
-cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
+$cleanupResult = cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
+foreach (($cleanupResult["events"] ?? array()) as $eventPayload) {
+    publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, $eventPayload);
+}
 
 $queuedSql = "
     SELECT

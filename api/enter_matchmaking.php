@@ -87,9 +87,10 @@ if (is_array($blockedCombinationsInput)) {
 
 try {
     $pdo->beginTransaction();
+    $liveWindowSeconds = 30;
 
     $activeMatchStmt = $pdo->prepare("
-        SELECT session_token
+        SELECT session_token, is_matchmaking, last_seen
         FROM player_sessions
         WHERE wallet_address = :wallet
         LIMIT 1
@@ -101,18 +102,64 @@ try {
 
     $existingSession = $activeMatchStmt->fetch();
     $previousSessionToken = $existingSession["session_token"] ?? null;
+    $previousSessionIsLiveMatchmaking =
+        $existingSession &&
+        (int)($existingSession["is_matchmaking"] ?? 0) === 1 &&
+        !empty($existingSession["last_seen"]) &&
+        (strtotime((string)$existingSession["last_seen"]) >= (time() - $liveWindowSeconds));
 
     if ($previousSessionToken && $previousSessionToken !== $sessionToken) {
-        $pdo->prepare("
-            UPDATE player_match_preferences
-            SET session_token = :nextSessionToken
-            WHERE wallet_address = :wallet
-              AND session_token = :previousSessionToken
-        ")->execute([
-            ":nextSessionToken" => $sessionToken,
-            ":wallet" => $walletAddress,
-            ":previousSessionToken" => $previousSessionToken
-        ]);
+        if ($previousSessionIsLiveMatchmaking) {
+            $pdo->prepare("
+                UPDATE player_match_preferences
+                SET session_token = :nextSessionToken
+                WHERE wallet_address = :wallet
+                  AND session_token = :previousSessionToken
+            ")->execute([
+                ":nextSessionToken" => $sessionToken,
+                ":wallet" => $walletAddress,
+                ":previousSessionToken" => $previousSessionToken
+            ]);
+        } else {
+            $stalePreferenceBucketsStmt = $pdo->prepare("
+                SELECT max_players, entry_fee_wei
+                FROM player_match_preferences
+                WHERE wallet_address = :wallet
+                  AND session_token = :previousSessionToken
+            ");
+            $stalePreferenceBucketsStmt->execute([
+                ":wallet" => $walletAddress,
+                ":previousSessionToken" => $previousSessionToken
+            ]);
+            $stalePreferenceBuckets = array_map(
+                function ($bucket) {
+                    return array(
+                        "maxPlayers" => (int)($bucket["max_players"] ?? 0),
+                        "entryFeeWei" => (string)($bucket["entry_fee_wei"] ?? "")
+                    );
+                },
+                $stalePreferenceBucketsStmt->fetchAll()
+            );
+
+            $pdo->prepare("
+                DELETE FROM player_match_preferences
+                WHERE wallet_address = :wallet
+                  AND session_token = :previousSessionToken
+            ")->execute([
+                ":wallet" => $walletAddress,
+                ":previousSessionToken" => $previousSessionToken
+            ]);
+
+            if (!empty($stalePreferenceBuckets)) {
+                publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
+                    "action" => "left",
+                    "walletAddress" => $walletAddress,
+                    "sessionToken" => $previousSessionToken,
+                    "operationId" => null,
+                    "buckets" => $stalePreferenceBuckets
+                ]);
+            }
+        }
 
         $pdo->prepare("
             UPDATE player_session_matches

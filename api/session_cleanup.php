@@ -1,64 +1,90 @@
 <?php
 
-function cleanupInactiveMatchmakingSessions(PDO $pdo, int $liveWindowSeconds = 30): array
+function cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds = 30)
 {
-    $deletePreferencesSql = "
-        DELETE pmp
-        FROM player_match_preferences pmp
-        INNER JOIN player_sessions ps
-            ON ps.wallet_address = pmp.wallet_address
-           AND ps.session_token = pmp.session_token
-        LEFT JOIN player_session_matches psm
-            ON psm.wallet_address = ps.wallet_address
-           AND psm.session_token = ps.session_token
-           AND psm.state = 'active'
-        LEFT JOIN player_current_matches pcm
-            ON pcm.wallet_address = ps.wallet_address
-           AND pcm.session_token = ps.session_token
-        WHERE ps.is_matchmaking = 1
-          AND ps.last_seen < (NOW() - INTERVAL :live_window SECOND)
-          AND psm.wallet_address IS NULL
-          AND pcm.wallet_address IS NULL
-    ";
-
-    $deleteSessionsSql = "
-        DELETE ps
+    $selectStaleSessionsSql = "
+        SELECT
+            ps.wallet_address,
+            ps.session_token
         FROM player_sessions ps
-        LEFT JOIN player_match_preferences pmp
-            ON pmp.wallet_address = ps.wallet_address
-           AND pmp.session_token = ps.session_token
         LEFT JOIN player_session_matches psm
-            ON psm.wallet_address = ps.wallet_address
-           AND psm.session_token = ps.session_token
+            ON BINARY psm.wallet_address = BINARY ps.wallet_address
+           AND BINARY psm.session_token = BINARY ps.session_token
            AND psm.state = 'active'
         LEFT JOIN player_current_matches pcm
-            ON pcm.wallet_address = ps.wallet_address
-           AND pcm.session_token = ps.session_token
+            ON BINARY pcm.wallet_address = BINARY ps.wallet_address
+           AND BINARY pcm.session_token = BINARY ps.session_token
         WHERE ps.is_matchmaking = 1
-          AND ps.last_seen < (NOW() - INTERVAL :live_window SECOND)
-          AND pmp.wallet_address IS NULL
+          AND ps.last_seen < (NOW() - INTERVAL {$liveWindowSeconds} SECOND)
           AND psm.wallet_address IS NULL
           AND pcm.wallet_address IS NULL
     ";
 
     $deletedPreferenceRows = 0;
     $deletedSessionRows = 0;
+    $cleanupEvents = array();
 
     $pdo->beginTransaction();
 
     try {
-        $deletePreferencesStmt = $pdo->prepare($deletePreferencesSql);
-        $deletePreferencesStmt->bindValue(":live_window", $liveWindowSeconds, PDO::PARAM_INT);
-        $deletePreferencesStmt->execute();
-        $deletedPreferenceRows = $deletePreferencesStmt->rowCount();
+        $selectStaleSessionsStmt = $pdo->query($selectStaleSessionsSql);
+        $staleSessions = $selectStaleSessionsStmt->fetchAll();
 
-        $deleteSessionsStmt = $pdo->prepare($deleteSessionsSql);
-        $deleteSessionsStmt->bindValue(":live_window", $liveWindowSeconds, PDO::PARAM_INT);
-        $deleteSessionsStmt->execute();
-        $deletedSessionRows = $deleteSessionsStmt->rowCount();
+        if (!empty($staleSessions)) {
+            $deletePreferenceStmt = $pdo->prepare("
+                DELETE FROM player_match_preferences
+                WHERE wallet_address = :wallet
+                  AND session_token = :sessionToken
+            ");
+            $deleteSessionStmt = $pdo->prepare("
+                DELETE FROM player_sessions
+                WHERE wallet_address = :wallet
+                  AND session_token = :sessionToken
+            ");
+            $selectPreferenceBucketsStmt = $pdo->prepare("
+                SELECT max_players, entry_fee_wei
+                FROM player_match_preferences
+                WHERE wallet_address = :wallet
+                  AND session_token = :sessionToken
+            ");
+
+            foreach ($staleSessions as $staleSession) {
+                $params = array(
+                    ":wallet" => strtolower((string)$staleSession["wallet_address"]),
+                    ":sessionToken" => (string)$staleSession["session_token"]
+                );
+
+                $selectPreferenceBucketsStmt->execute($params);
+                $preferenceBuckets = array_map(
+                    function ($bucket) {
+                        return array(
+                            "maxPlayers" => (int)($bucket["max_players"] ?? 0),
+                            "entryFeeWei" => (string)($bucket["entry_fee_wei"] ?? "")
+                        );
+                    },
+                    $selectPreferenceBucketsStmt->fetchAll()
+                );
+
+                if (!empty($preferenceBuckets)) {
+                    $cleanupEvents[] = array(
+                        "action" => "left",
+                        "walletAddress" => $params[":wallet"],
+                        "sessionToken" => $params[":sessionToken"],
+                        "operationId" => null,
+                        "buckets" => $preferenceBuckets
+                    );
+                }
+
+                $deletePreferenceStmt->execute($params);
+                $deletedPreferenceRows += $deletePreferenceStmt->rowCount();
+
+                $deleteSessionStmt->execute($params);
+                $deletedSessionRows += $deleteSessionStmt->rowCount();
+            }
+        }
 
         $pdo->commit();
-    } catch (Throwable $error) {
+    } catch (Exception $error) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
@@ -66,8 +92,9 @@ function cleanupInactiveMatchmakingSessions(PDO $pdo, int $liveWindowSeconds = 3
         throw $error;
     }
 
-    return [
+    return array(
         "deletedPreferenceRows" => $deletedPreferenceRows,
-        "deletedSessionRows" => $deletedSessionRows
-    ];
+        "deletedSessionRows" => $deletedSessionRows,
+        "events" => $cleanupEvents
+    );
 }

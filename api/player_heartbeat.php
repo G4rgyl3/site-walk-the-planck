@@ -4,6 +4,7 @@ header("Content-Type: application/json");
 
 require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/session_cleanup.php";
+require_once __DIR__ . "/matchmaking_events.php";
 
 $input = json_decode(file_get_contents("php://input"), true);
 
@@ -30,7 +31,10 @@ if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $sessionToken)) {
 }
 
 try {
-    cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
+    $cleanupResult = cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
+    foreach (($cleanupResult["events"] ?? array()) as $eventPayload) {
+        publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, $eventPayload);
+    }
 
     $stmt = $pdo->prepare("
         UPDATE player_sessions

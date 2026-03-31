@@ -7,6 +7,7 @@ header("Expires: 0");
 
 require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/session_cleanup.php";
+require_once __DIR__ . "/matchmaking_events.php";
 
 $walletAddress = strtolower(trim((string)($_GET["walletAddress"] ?? "")));
 $sessionToken = trim((string)($_GET["sessionToken"] ?? ""));
@@ -24,7 +25,10 @@ if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $sessionToken)) {
 }
 
 $liveWindowSeconds = 30;
-cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
+$cleanupResult = cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
+foreach (($cleanupResult["events"] ?? array()) as $eventPayload) {
+    publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, $eventPayload);
+}
 
 $selfSql = "
     SELECT
