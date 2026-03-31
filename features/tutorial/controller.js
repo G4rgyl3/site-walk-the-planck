@@ -39,11 +39,41 @@ const TUTORIAL_STEPS = [
     }
 ];
 
+const TUTORIAL_STORAGE_KEY = "wtp:tutorial-phase-1";
+
 let isTutorialOpen = false;
 let activeStepIndex = 0;
 let resizeHandler = null;
 let scrollHandler = null;
 let keydownHandler = null;
+
+function readTutorialState() {
+    try {
+        const raw = window.localStorage.getItem(TUTORIAL_STORAGE_KEY);
+        if (!raw) {
+            return { dismissed: false, completed: false };
+        }
+
+        const parsed = JSON.parse(raw);
+        return {
+            dismissed: parsed?.dismissed === true,
+            completed: parsed?.completed === true
+        };
+    } catch (error) {
+        return { dismissed: false, completed: false };
+    }
+}
+
+function writeTutorialState(nextState) {
+    try {
+        window.localStorage.setItem(TUTORIAL_STORAGE_KEY, JSON.stringify({
+            dismissed: nextState?.dismissed === true,
+            completed: nextState?.completed === true
+        }));
+    } catch (error) {
+        // Ignore storage failures and keep the tutorial usable for the session.
+    }
+}
 
 function isVisibleElement(element) {
     if (!element) {
@@ -152,7 +182,7 @@ function addTutorialListeners() {
         }
 
         if (event.key === "Escape") {
-            closeTutorial();
+            closeTutorial({ dismissed: true });
         }
     };
 
@@ -192,21 +222,33 @@ function openTutorial(startIndex = 0) {
     renderTutorialStep();
 }
 
-function closeTutorial() {
+function closeTutorial(options = {}) {
     if (!tutorialOverlay) {
         return;
     }
+
+    const {
+        dismissed = false,
+        completed = false
+    } = options;
 
     isTutorialOpen = false;
     tutorialOverlay.classList.add("hidden");
     tutorialOverlay.setAttribute("aria-hidden", "true");
     document.body.classList.remove("tutorial-open");
     removeTutorialListeners();
+
+    if (dismissed || completed) {
+        writeTutorialState({
+            dismissed,
+            completed
+        });
+    }
 }
 
 function handleNextTutorialStep() {
     if (activeStepIndex >= (TUTORIAL_STEPS.length - 1)) {
-        closeTutorial();
+        closeTutorial({ completed: true });
         return;
     }
 
@@ -230,16 +272,25 @@ function bindTutorialEvents() {
 
     tutorialNextBtn?.addEventListener("click", handleNextTutorialStep);
     tutorialBackBtn?.addEventListener("click", handlePreviousTutorialStep);
-    tutorialSkipBtn?.addEventListener("click", closeTutorial);
+    tutorialSkipBtn?.addEventListener("click", () => {
+        closeTutorial({ dismissed: true });
+    });
     tutorialOverlay?.addEventListener("click", (event) => {
         if (event.target === tutorialOverlay) {
-            closeTutorial();
+            closeTutorial({ dismissed: true });
         }
     });
 }
 
 function initTutorialController() {
     bindTutorialEvents();
+    const tutorialState = readTutorialState();
+
+    if (!tutorialState.dismissed && !tutorialState.completed) {
+        window.setTimeout(() => {
+            openTutorial(0);
+        }, 240);
+    }
 }
 
 export {
