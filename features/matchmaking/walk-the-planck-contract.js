@@ -200,6 +200,10 @@ function toStringValue(value) {
     return value?.toString?.() ?? String(value ?? "");
 }
 
+function sleep(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 function normalizeMatchRecord(matchId, record, players, claimableSet, refundableSet, playerAddress) {
     const normalizedMatchId = toStringValue(matchId);
     const normalizedStatus = toNumber(record?.status);
@@ -272,24 +276,30 @@ async function getPlayerMatchDetails(playerAddress) {
     const claimableSet = new Set((claimableIds ?? []).map((value) => toStringValue(value)));
     const refundableSet = new Set((refundableIds ?? []).map((value) => toStringValue(value)));
     const uniqueMatchIds = [...new Set((matchIds ?? []).map((value) => toStringValue(value)))];
+    const matches = [];
 
-    const matches = await Promise.all(
-        uniqueMatchIds.map(async (matchId) => {
-            const [record, players] = await Promise.all([
-                contract.getMatch(matchId),
-                contract.getMatchPlayers(matchId)
-            ]);
+    for (let index = 0; index < uniqueMatchIds.length; index += 1) {
+        const matchId = uniqueMatchIds[index];
+        const [record, players] = await Promise.all([
+            contract.getMatch(matchId),
+            contract.getMatchPlayers(matchId)
+        ]);
 
-            return normalizeMatchRecord(
+        matches.push(
+            normalizeMatchRecord(
                 matchId,
                 record,
                 players,
                 claimableSet,
                 refundableSet,
                 playerAddress
-            );
-        })
-    );
+            )
+        );
+
+        if (index < uniqueMatchIds.length - 1) {
+            await sleep(200);
+        }
+    }
 
     return matches.sort((left, right) => Number(right.id) - Number(left.id));
 }

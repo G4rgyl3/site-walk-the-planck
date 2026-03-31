@@ -608,7 +608,7 @@ function syncPlaybackMatchRefreshLoop(match) {
 
     playbackMatchRefreshIntervalId = window.setInterval(() => {
         void refreshActiveMatchStates();
-    }, 4000);
+    }, 3000);
 }
 
 function getPlaybackTransitionClass(mode) {
