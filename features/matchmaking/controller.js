@@ -406,6 +406,11 @@ function handleWalletStateChange(walletState) {
 }
 
 async function syncWalletState(walletState) {
+    if (walletState.account && !walletState.chainId) {
+        await initializeWallet();
+        return;
+    }
+
     const walletAddress = walletState.account || "";
     const previousWalletAddress = lastWalletAccount;
     const previousSessionToken = getSessionTokenValue();
