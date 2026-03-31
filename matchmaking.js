@@ -1,8 +1,13 @@
-import { getPlayerMatchDetail, getPlayerMatchDetails } from "./features/matchmaking/walk-the-planck-contract.js";
+import {
+    getPlayerMatchDetail,
+    getPlayerMatchDetails,
+    getSupportedGameChainMessage,
+    isPublishedGameChainSupported
+} from "./features/matchmaking/walk-the-planck-contract.js";
 import { ENDPOINTS, getJson, postJson } from "./api.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
-import { formatSelections, renderAvailableMatches, renderPlayerMatches, setMatchmakingState } from "./ui/render.js";
+import { formatSelections, renderAvailableMatches, renderPlayerMatches, setMatchmakingState, showToast } from "./ui/render.js";
 import {
     getActiveMatchStates,
     getAvailableMatches,
@@ -223,6 +228,16 @@ async function refreshShipLogMatches(options = {}) {
             setShipLogMatches([]);
             setShipLogMatchesHydrated(true);
             renderPlayerMatches([]);
+            return;
+        }
+
+        if (!isPublishedGameChainSupported(getWalletState().chainId)) {
+            showToast(getSupportedGameChainMessage(), { variant: "info" });
+            setShipLogMatches([]);
+            setShipLogMatchesHydrated(false);
+            if (force) {
+                renderPlayerMatches([]);
+            }
             return;
         }
 

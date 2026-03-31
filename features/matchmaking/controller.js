@@ -11,6 +11,8 @@ import {
     claimPublishedMatch,
     claimPublishedRefund,
     decodeContractError,
+    getSupportedGameChainMessage,
+    isPublishedGameChainSupported,
     joinPublishedLobby
 } from "./walk-the-planck-contract.js";
 import {
@@ -92,6 +94,10 @@ function getWalletActionErrorMessage(err) {
     }
 
     return "Please make sure your wallet is signed in and unlocked, then try again.";
+}
+
+function showUnsupportedChainMessage() {
+    showToast(getSupportedGameChainMessage(), { variant: "info" });
 }
 
 function hasBlockingMatch(matches = getActiveMatchStates()) {
@@ -299,6 +305,11 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
         return;
     }
 
+    if (!isPublishedGameChainSupported(getWalletState().chainId)) {
+        showUnsupportedChainMessage();
+        return;
+    }
+
     await refreshMatchCandidates();
 
     if (!hasMatchCandidate(maxPlayers, entryFeeWei)) {
@@ -357,6 +368,11 @@ async function handleClaimMatchClick(matchId) {
     }
 
     try {
+        if (!isPublishedGameChainSupported(getWalletState().chainId)) {
+            showUnsupportedChainMessage();
+            return;
+        }
+
         showToast(`Claiming spoils for match #${matchId}...`, { variant: "info" });
         const { tx } = await claimPublishedMatch(matchId);
         showToast(`Claim sent: ${tx.hash}`, { variant: "info" });
@@ -380,6 +396,11 @@ async function handleClaimRefundClick(matchId) {
     }
 
     try {
+        if (!isPublishedGameChainSupported(getWalletState().chainId)) {
+            showUnsupportedChainMessage();
+            return;
+        }
+
         showToast(`Claiming refund for match #${matchId}...`, { variant: "info" });
         const { tx } = await claimPublishedRefund(matchId);
         showToast(`Refund sent: ${tx.hash}`, { variant: "info" });
@@ -409,6 +430,8 @@ async function syncWalletState(walletState) {
     const previousWalletAddress = lastWalletAccount;
     const previousSessionToken = getSessionTokenValue();
 
+    lastWalletAccount = walletAddress;
+
     if (walletAddress && previousWalletAddress && walletAddress !== previousWalletAddress) {
         if (getIsInQueue()) {
             await leaveQueue(previousWalletAddress, previousSessionToken);
@@ -437,8 +460,6 @@ async function syncWalletState(walletState) {
         resetSessionToken();
         showToast("Wallet disconnected.", { variant: "info" });
     }
-
-    lastWalletAccount = walletAddress;
     updateWalletUI();
     renderMatchmakingState();
     void updateMatchmakingUI();

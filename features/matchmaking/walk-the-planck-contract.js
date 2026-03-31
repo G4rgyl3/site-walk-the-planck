@@ -46,6 +46,50 @@ function getConfiguredChainId(environment, chainSlug) {
     return null;
 }
 
+function getSupportedChainIds() {
+    return CONTRACT_ENVIRONMENTS.flatMap((environment) => {
+        const environmentContracts = contractIndex?.[environment] ?? {};
+
+        return Object.entries(environmentContracts)
+            .map(([chainSlug, contracts]) => {
+                const chainId = getConfiguredChainId(environment, chainSlug);
+                const gameContract = contracts?.WalkThePlanck?.Game;
+
+                if (!Number.isFinite(chainId) || !gameContract?.address || !Array.isArray(gameContract.abi)) {
+                    return null;
+                }
+
+                return chainId;
+            })
+            .filter((chainId) => Number.isFinite(chainId));
+    });
+}
+
+function isPublishedGameChainSupported(chainId) {
+    const normalizedChainId = normalizeChainId(chainId);
+
+    if (!normalizedChainId) {
+        return false;
+    }
+
+    return getSupportedChainIds().includes(normalizedChainId);
+}
+
+function getSupportedGameChainMessage(chainId = getWalletState().chainId) {
+    const normalizedChainId = normalizeChainId(chainId);
+    const supportedChainIds = getSupportedChainIds();
+
+    if (supportedChainIds.includes(normalizedChainId)) {
+        return "";
+    }
+
+    if (supportedChainIds.includes(84532)) {
+        return "Switch your wallet to Base Sepolia to continue.";
+    }
+
+    return "Switch your wallet to a supported WalkThePlanck network to continue.";
+}
+
 function getPublishedGameMetadata() {
     const walletState = getWalletState();
     const currentChainId = normalizeChainId(walletState.chainId);
@@ -401,7 +445,9 @@ export {
     getPlayerMatchDetail,
     getPublishedMatchSnapshot,
     getPlayerMatchDetails,
+    getSupportedGameChainMessage,
     WalkThePlanckContract,
     getPublishedGameMetadata,
+    isPublishedGameChainSupported,
     joinPublishedLobby
 };

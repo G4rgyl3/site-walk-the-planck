@@ -1,7 +1,11 @@
 import { ENDPOINTS, getJson, postJson } from "./api.js";
 import { getSessionToken } from "./session.js";
 import { stopHeartbeat } from "./heartbeat.js";
-import { getActiveMatchBuckets } from "./features/matchmaking/walk-the-planck-contract.js";
+import {
+    getActiveMatchBuckets,
+    isPublishedGameChainSupported
+} from "./features/matchmaking/walk-the-planck-contract.js";
+import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { refreshMatchCandidates } from "./matchmaking.js";
 import { onQueuePreferencesChanged } from "./lib/matchmaking-events.js";
 import { getQueues, setQueues } from "./state/app-state.js";
@@ -247,6 +251,10 @@ async function refreshQueues() {
 
 async function truthUpCommittedMatches() {
     try {
+        if (!isPublishedGameChainSupported(getWalletState().chainId)) {
+            return;
+        }
+
         const activeMatchBuckets = await getActiveMatchBuckets();
         console.debug("[queue] truth-up active match buckets from chain", activeMatchBuckets);
         console.debug(

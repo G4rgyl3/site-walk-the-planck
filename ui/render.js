@@ -1,6 +1,7 @@
 import { fromWei } from "@ohlabs/js-chain/utility/ethers.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getEntropyExplorerUrl } from "../lib/entropy-explorer.js";
+import { getSupportedGameChainMessage, isPublishedGameChainSupported } from "../features/matchmaking/walk-the-planck-contract.js";
 import {
     activityTabs,
     availableMatchList,
@@ -37,6 +38,29 @@ function setStatus(message) {
 const TOAST_DEFAULT_DURATION = 4200;
 let toastSequence = 0;
 let activeActivityTab = "queues";
+
+function normalizeChainId(chainId) {
+    if (chainId == null) {
+        return null;
+    }
+
+    try {
+        return Number(BigInt(chainId));
+    } catch (error) {
+        return null;
+    }
+}
+
+function getChainLabel(chainId) {
+    const normalizedChainId = normalizeChainId(chainId);
+
+    if (normalizedChainId === 84532) return "Base Sepolia";
+    if (normalizedChainId === 8453) return "Base";
+    if (normalizedChainId === 42161) return "Arbitrum One";
+    if (normalizedChainId === 421614) return "Arbitrum Sepolia";
+    if (normalizedChainId === 1) return "Ethereum";
+    return normalizedChainId ? `Chain ${normalizedChainId}` : "Unknown network";
+}
 
 function setActivityTab(tabName) {
     const nextTab = tabName === "history" ? "history" : "queues";
@@ -116,8 +140,10 @@ function formatSelections() {
 }
 
 function updateActionButtons() {
-    const connected = !!getWalletState().account;
+    const walletState = getWalletState();
+    const connected = !!walletState.account;
     const isInQueue = getIsInQueue();
+    const supportedChain = isPublishedGameChainSupported(walletState.chainId);
 
     if (connectBtn) {
         connectBtn.disabled = connected;
@@ -137,11 +163,24 @@ function updateActionButtons() {
     if (refreshQueueBtn) {
         refreshQueueBtn.disabled = !connected;
     }
+
+    if (historyTabBtn) {
+        historyTabBtn.disabled = connected && !supportedChain;
+        historyTabBtn.title = connected && !supportedChain
+            ? getSupportedGameChainMessage(walletState.chainId)
+            : "";
+    }
 }
 
 function updateWalletUI() {
-    const walletAddress = getWalletState().account || "";
+    const walletState = getWalletState();
+    const walletAddress = walletState.account || "";
     const connected = !!walletAddress;
+    const supportedChain = isPublishedGameChainSupported(walletState.chainId);
+    const chainLabel = getChainLabel(walletState.chainId);
+    const unsupportedChainMessage = connected && !supportedChain
+        ? getSupportedGameChainMessage(walletState.chainId)
+        : "";
 
     if (walletBox) {
         walletBox.title = walletAddress || "";
@@ -154,6 +193,10 @@ function updateWalletUI() {
                     </div>
                     <div class="wallet-address-short">${shortenWalletAddress(walletAddress)}</div>
                 </div>
+                <div class="wallet-network-line">Network: ${chainLabel}</div>
+                ${unsupportedChainMessage ? `
+                    <div class="wallet-network-warning">${unsupportedChainMessage}</div>
+                ` : ""}
             `
             : `
                 <div class="wallet-identity">
@@ -300,6 +343,9 @@ function renderQueues(queues) {
 function renderAvailableMatches(matches) {
     if (!availableMatchPanel || !availableMatchList) return;
 
+    const supportedChain = isPublishedGameChainSupported(getWalletState().chainId);
+    const disabledLabel = supportedChain ? "Board Ship" : "Switch to Base";
+
     if (!Array.isArray(matches) || matches.length === 0) {
         availableMatchPanel.classList.add("hidden");
         availableMatchList.innerHTML = "";
@@ -326,8 +372,9 @@ function renderAvailableMatches(matches) {
                 class="btn btn-join-match"
                 data-max-players="${match.maxPlayers}"
                 data-entry-fee-wei="${match.entryFeeWei}"
+                ${supportedChain ? "" : `disabled title="${getSupportedGameChainMessage(getWalletState().chainId)}"`}
             >
-                Board Ship
+                ${disabledLabel}
             </button>
         </div>
     `).join("");
@@ -343,6 +390,9 @@ function formatDateTime(unixSeconds) {
 
 function renderPlayerMatches(matches) {
     if (!playerMatchList) return;
+
+    const supportedChain = isPublishedGameChainSupported(getWalletState().chainId);
+    const unsupportedChainMessage = getSupportedGameChainMessage(getWalletState().chainId);
 
     if (!Array.isArray(matches) || matches.length === 0) {
         playerMatchList.innerHTML = "";
@@ -392,8 +442,9 @@ function renderPlayerMatches(matches) {
                             type="button"
                             class="btn btn-join-match"
                             data-claim-match-id="${match.id}"
+                            ${supportedChain ? "" : `disabled title="${unsupportedChainMessage}"`}
                         >
-                            Claim Spoils
+                            ${supportedChain ? "Claim Spoils" : "Switch to Base"}
                         </button>
                     ` : ""}
                     ${match.isRefundable ? `
@@ -401,8 +452,9 @@ function renderPlayerMatches(matches) {
                             type="button"
                             class="btn btn-neutral"
                             data-refund-match-id="${match.id}"
+                            ${supportedChain ? "" : `disabled title="${unsupportedChainMessage}"`}
                         >
-                            Claim Refund
+                            ${supportedChain ? "Claim Refund" : "Switch to Base"}
                         </button>
                     ` : ""}
                 </div>
