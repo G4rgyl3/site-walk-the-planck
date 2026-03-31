@@ -53,8 +53,8 @@
       <section class="panel">
         <div class="panel-inner">
           <h2 class="panel-title">Player Panel</h2>
-          <section class="section wallet-section">
-            <div class="wallet-strip">
+          <section class="section wallet-section" id="tutorialWalletSection">
+            <div class="wallet-strip" id="tutorialWalletStrip">
               <div class="wallet-strip-main">
                 <div class="wallet-strip-title">Wallet</div>
                 <div class="wallet-strip-summary" id="connectedWalletBox">
@@ -75,7 +75,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="tutorialMatchSetupPanel">
         <div class="panel-inner">
           <h2 class="panel-title">Match Setup</h2>
 
@@ -102,7 +102,7 @@
             <div class="hint">Multi-select enabled. Let players join several fee tiers at once.</div>
           </div>
 
-          <div class="button-row">
+          <div class="button-row" id="tutorialQueueActions">
             <button type="button" class="btn btn-ready" id="joinQueueBtn">Join Queue</button>
             <button type="button" class="btn btn-leave" id="leaveQueueBtn">Leave Queue</button>
             <button type="button" class="btn btn-neutral" id="refreshQueueBtn">Refresh Queue Status</button>
@@ -113,7 +113,7 @@
     </div>
 
     <!-- RIGHT PANEL -->
-    <section class="panel">
+    <section class="panel" id="tutorialMatchmakingPanel">
       <div class="panel-inner">
         <div class="queue-panel-header">
           <h2 class="panel-title">Matchmaking</h2>
@@ -306,6 +306,31 @@
       </div>
     </div>
   </footer>
+  <button
+    type="button"
+    class="tutorial-help-btn"
+    id="tutorialHelpBtn"
+    aria-haspopup="dialog"
+    aria-controls="tutorialOverlay"
+    aria-label="Open tutorial"
+    title="Open tutorial"
+  >
+    ?
+  </button>
+  <div class="tutorial-overlay hidden" id="tutorialOverlay" aria-hidden="true">
+    <div class="tutorial-spotlight" id="tutorialSpotlight"></div>
+    <div class="tutorial-dialog" id="tutorialDialog" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+      <div class="tutorial-dialog-kicker">Captain's Briefing</div>
+      <h2 class="tutorial-dialog-title" id="tutorialTitle">How this harbor works</h2>
+      <p class="tutorial-dialog-body" id="tutorialBody"></p>
+      <div class="tutorial-dialog-step" id="tutorialStepLabel">1 / 5</div>
+      <div class="tutorial-dialog-actions">
+        <button type="button" class="btn btn-neutral tutorial-btn" id="tutorialBackBtn">Back</button>
+        <button type="button" class="btn btn-neutral tutorial-btn" id="tutorialSkipBtn">Skip</button>
+        <button type="button" class="btn btn-ready tutorial-btn" id="tutorialNextBtn">Next</button>
+      </div>
+    </div>
+  </div>
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>

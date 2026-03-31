@@ -54,6 +54,10 @@
       overflow: hidden;
     }
 
+    body.tutorial-open {
+      overflow: hidden;
+    }
+
     .app-shell {
       max-width: 1420px;
       margin: 0 auto;
@@ -1434,12 +1438,125 @@
     .toast-stack {
       position: fixed;
       right: 24px;
-      bottom: 24px;
+      bottom: 84px;
       z-index: 1200;
       display: grid;
       gap: 12px;
       width: min(360px, calc(100vw - 32px));
       pointer-events: none;
+    }
+
+    .tutorial-help-btn {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 1210;
+      width: 46px;
+      height: 46px;
+      border: 1px solid rgba(95, 209, 255, 0.32);
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.22), transparent 55%),
+        linear-gradient(180deg, rgba(16, 31, 60, 0.98), rgba(9, 18, 36, 0.98));
+      color: var(--text-main);
+      font-size: 20px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.03),
+        0 18px 40px rgba(0, 0, 0, 0.34),
+        0 0 28px rgba(109, 61, 245, 0.16);
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .tutorial-help-btn:hover {
+      transform: translateY(-2px) scale(1.02);
+      border-color: rgba(167, 139, 250, 0.44);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.03),
+        0 22px 46px rgba(0, 0, 0, 0.38),
+        0 0 34px rgba(109, 61, 245, 0.22);
+    }
+
+    .tutorial-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1300;
+      background: rgba(3, 7, 16, 0.26);
+    }
+
+    .tutorial-spotlight {
+      position: fixed;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: transparent;
+      box-shadow:
+        0 0 0 9999px rgba(2, 6, 15, 0.72),
+        0 0 0 1px rgba(95, 209, 255, 0.12),
+        0 0 42px rgba(109, 61, 245, 0.16);
+      transition:
+        left 0.22s ease,
+        top 0.22s ease,
+        width 0.22s ease,
+        height 0.22s ease;
+      pointer-events: none;
+    }
+
+    .tutorial-dialog {
+      position: fixed;
+      z-index: 1301;
+      width: min(380px, calc(100vw - 32px));
+      padding: 18px 18px 16px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(249, 250, 255, 0.98), rgba(241, 244, 255, 0.98));
+      color: #25314f;
+      box-shadow:
+        0 28px 70px rgba(0, 0, 0, 0.38),
+        0 0 0 1px rgba(255,255,255,0.38);
+    }
+
+    .tutorial-dialog-kicker {
+      margin-bottom: 8px;
+      color: #6d3df5;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .tutorial-dialog-title {
+      margin: 0 0 10px;
+      color: #1d2742;
+      font-size: 28px;
+      line-height: 1.04;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .tutorial-dialog-body {
+      margin: 0 0 18px;
+      color: #5b6684;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .tutorial-dialog-step {
+      margin-bottom: 14px;
+      color: #7a86a6;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .tutorial-dialog-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .tutorial-btn {
+      width: auto;
+      min-width: 86px;
     }
 
     .site-footer {
@@ -1667,7 +1784,7 @@
 
       .toast-stack {
         right: 16px;
-        bottom: 16px;
+        bottom: 76px;
         width: min(360px, calc(100vw - 24px));
       }
 

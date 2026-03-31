@@ -35,6 +35,16 @@ const playbackClipNote = document.getElementById("playbackClipNote");
 const matchSizeSelector = document.getElementById("matchSizeSelector");
 const entryFeeSelector = document.getElementById("entryFeeSelector");
 const toastStack = document.getElementById("toastStack");
+const tutorialBackBtn = document.getElementById("tutorialBackBtn");
+const tutorialBody = document.getElementById("tutorialBody");
+const tutorialDialog = document.getElementById("tutorialDialog");
+const tutorialHelpBtn = document.getElementById("tutorialHelpBtn");
+const tutorialNextBtn = document.getElementById("tutorialNextBtn");
+const tutorialOverlay = document.getElementById("tutorialOverlay");
+const tutorialSkipBtn = document.getElementById("tutorialSkipBtn");
+const tutorialSpotlight = document.getElementById("tutorialSpotlight");
+const tutorialStepLabel = document.getElementById("tutorialStepLabel");
+const tutorialTitle = document.getElementById("tutorialTitle");
 
 export {
     activityTabs,
@@ -73,5 +83,15 @@ export {
     refreshQueueBtn,
     sessionBox,
     toastStack,
+    tutorialBackBtn,
+    tutorialBody,
+    tutorialDialog,
+    tutorialHelpBtn,
+    tutorialNextBtn,
+    tutorialOverlay,
+    tutorialSkipBtn,
+    tutorialSpotlight,
+    tutorialStepLabel,
+    tutorialTitle,
     walletBox
 };
