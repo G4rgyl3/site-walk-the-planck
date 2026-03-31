@@ -11,6 +11,6 @@
   },
   "dependencies": {
     "@ohlabs/configuration": "^1.4.4",
-    "@ohlabs/js-chain": "^1.1.1"
+    "@ohlabs/js-chain": "^2.0.0"
   }
 }

@@ -2,8 +2,7 @@ import { ENDPOINTS, postJson } from "../../api.js";
 import {
     connect,
     getState as getWalletState,
-    initializeWallet,
-    refreshAccount,
+    initialize,
     subscribe as subscribeWallet
 } from "@ohlabs/js-chain/utility/wallet.js";
 import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
@@ -406,11 +405,6 @@ function handleWalletStateChange(walletState) {
 }
 
 async function syncWalletState(walletState) {
-    if (walletState.account && !walletState.chainId) {
-        await initializeWallet();
-        return;
-    }
-
     const walletAddress = walletState.account || "";
     const previousWalletAddress = lastWalletAccount;
     const previousSessionToken = getSessionTokenValue();
@@ -549,8 +543,7 @@ async function initMatchmakingController() {
     unsubscribeMatchmakingState = subscribeAppState(() => {
         renderMatchmakingState();
     });
-    await initializeWallet();
-    await refreshAccount();
+    await initialize();
     updateWalletUI();
     await truthUpCommittedMatches();
     await refreshCurrentGameMatch();
