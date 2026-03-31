@@ -3,6 +3,7 @@
 header("Content-Type: application/json");
 
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/session_cleanup.php";
 
 $input = json_decode(file_get_contents("php://input"), true);
 
@@ -27,7 +28,11 @@ if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $sessionToken)) {
     exit;
 }
 
+$liveWindowSeconds = 30;
+
 try {
+    cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
+
     $pdo->beginTransaction();
 
     $existingSessionStmt = $pdo->prepare("

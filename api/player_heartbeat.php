@@ -3,6 +3,7 @@
 header("Content-Type: application/json");
 
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/session_cleanup.php";
 
 $input = json_decode(file_get_contents("php://input"), true);
 
@@ -14,6 +15,7 @@ if (!is_array($input)) {
 
 $walletAddress = strtolower(trim((string)($input["walletAddress"] ?? "")));
 $sessionToken = trim((string)($input["sessionToken"] ?? ""));
+$liveWindowSeconds = 30;
 
 if (!preg_match('/^0x[a-f0-9]{40}$/', $walletAddress)) {
     http_response_code(400);
@@ -28,6 +30,8 @@ if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $sessionToken)) {
 }
 
 try {
+    cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
+
     $stmt = $pdo->prepare("
         UPDATE player_sessions
         SET last_seen = NOW()

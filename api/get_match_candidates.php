@@ -6,6 +6,7 @@ header("Pragma: no-cache");
 header("Expires: 0");
 
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/session_cleanup.php";
 
 $walletAddress = strtolower(trim((string)($_GET["walletAddress"] ?? "")));
 $sessionToken = trim((string)($_GET["sessionToken"] ?? ""));
@@ -23,6 +24,7 @@ if (!preg_match('/^[A-Za-z0-9_-]{1,64}$/', $sessionToken)) {
 }
 
 $liveWindowSeconds = 30;
+cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
 
 $selfSql = "
     SELECT

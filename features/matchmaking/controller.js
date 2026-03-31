@@ -3,6 +3,7 @@ import {
     connect,
     getState as getWalletState,
     initializeWallet,
+    refreshAccount,
     subscribe as subscribeWallet
 } from "@ohlabs/js-chain/utility/wallet.js";
 import { startHeartbeat, stopHeartbeat } from "../../heartbeat.js";
@@ -28,6 +29,7 @@ import {
     getCurrentGameMatch,
     getIsInQueue,
     getActiveMatchStates,
+    subscribe as subscribeAppState,
     getShipLogMatchesHydrated,
     getSelectedPreferences,
     getSessionTokenValue,
@@ -57,6 +59,7 @@ import {
 let unsubscribeWallet = null;
 let lastWalletAccount = null;
 let unsubscribeQueueEvents = null;
+let unsubscribeMatchmakingState = null;
 
 function isExpiredOpenMatch(match) {
     if (!match || Number(match.statusCode) !== 0 || !match.deadline) {
@@ -167,10 +170,7 @@ function setupMultiSelectChips(container) {
     });
 }
 
-async function updateMatchmakingUI() {
-    await refreshCurrentGameMatch();
-    await refreshActiveMatchStates();
-
+function renderMatchmakingState() {
     const isInQueue = getIsInQueue();
     const activeOnChainMatch = hasBlockingMatch();
 
@@ -185,7 +185,10 @@ async function updateMatchmakingUI() {
             meta: formatSelections(),
             tone: "searching"
         });
-    } else if (activeOnChainMatch) {
+        return;
+    }
+
+    if (activeOnChainMatch) {
         setMatchmakingState({
             searching: true,
             title: "Crew already aboard",
@@ -193,15 +196,22 @@ async function updateMatchmakingUI() {
             meta: "That plank is held aside until the match is settled.",
             tone: "active"
         });
-    } else {
-        setMatchmakingState({
-            searching: false,
-            title: "Not in queue",
-            detail: "Choose your match sizes and entry fees, then join the queue.",
-            meta: "No open planks selected.",
-            tone: "idle"
-        });
+        return;
     }
+
+    setMatchmakingState({
+        searching: false,
+        title: "Not in queue",
+        detail: "Choose your match sizes and entry fees, then join the queue.",
+        meta: "No open planks selected.",
+        tone: "idle"
+    });
+}
+
+async function updateMatchmakingUI() {
+    await refreshCurrentGameMatch();
+    await refreshActiveMatchStates();
+    renderMatchmakingState();
 
     await refreshMatchCandidates();
 }
@@ -431,6 +441,7 @@ async function syncWalletState(walletState) {
 
     lastWalletAccount = walletAddress;
     updateWalletUI();
+    renderMatchmakingState();
     void updateMatchmakingUI();
 
     if (walletAddress) {
@@ -529,12 +540,18 @@ async function initMatchmakingController() {
     startPolling();
     unsubscribeWallet?.();
     unsubscribeWallet = subscribeWallet(handleWalletStateChange);
+    unsubscribeMatchmakingState?.();
+    unsubscribeMatchmakingState = subscribeAppState(() => {
+        renderMatchmakingState();
+    });
     await initializeWallet();
+    await refreshAccount();
     updateWalletUI();
     await truthUpCommittedMatches();
     await refreshCurrentGameMatch();
     await refreshActiveMatchStates();
-    await updateMatchmakingUI();
+    renderMatchmakingState();
+    await refreshMatchCandidates();
     await refreshQueues();
 }
 

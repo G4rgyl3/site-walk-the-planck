@@ -6,6 +6,7 @@ header("Pragma: no-cache");
 header("Expires: 0");
 
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/session_cleanup.php";
 
 $allowedPlayerCounts = [2, 3, 4, 5];
 $allowedEntryFees = [
@@ -17,6 +18,7 @@ $allowedEntryFees = [
 ];
 
 $liveWindowSeconds = 30;
+cleanupInactiveMatchmakingSessions($pdo, $liveWindowSeconds);
 
 $queuedSql = "
     SELECT
