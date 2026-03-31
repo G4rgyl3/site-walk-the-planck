@@ -1,10 +1,10 @@
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
-import { refreshPlayerMatches } from "../../matchmaking.js";
+import { refreshActiveMatchStates } from "../../matchmaking.js";
 import {
+    getActiveMatchStates,
+    getActiveMatchStatesHydrated,
     getCurrentGameMatch,
     getCurrentGameMatchHydrated,
-    getPlayerMatches,
-    getPlayerMatchesHydrated,
     getSessionTokenValue,
     subscribe as subscribeAppState
 } from "../../state/app-state.js";
@@ -127,7 +127,7 @@ function resetPlaybackTracking() {
     playbackShownMatchIds = new Set();
 }
 
-function ensurePlaybackTracking(matches = getPlayerMatches()) {
+function ensurePlaybackTracking(matches = getActiveMatchStates()) {
     const nextTrackingKey = getPlaybackTrackingKey();
 
     if (!nextTrackingKey) {
@@ -142,16 +142,25 @@ function ensurePlaybackTracking(matches = getPlayerMatches()) {
         playbackShownMatchIds = readShownMatchIds(nextTrackingKey);
     }
 
-    if (!getPlayerMatchesHydrated() && !getCurrentGameMatchHydrated()) {
+    if (!getActiveMatchStatesHydrated() && !getCurrentGameMatchHydrated()) {
         return false;
     }
 
     if (!playbackTrackingInitialized) {
-        playbackBaselineMatchIds = new Set(
+        const baselineMatchIds = new Set(
             matches
                 .map((match) => String(match?.id ?? ""))
                 .filter(Boolean)
         );
+        const currentGameMatchId = String(
+            getCurrentGameMatch()?.id ??
+            getCurrentGameMatch()?.matchId ??
+            ""
+        );
+        if (currentGameMatchId) {
+            baselineMatchIds.add(currentGameMatchId);
+        }
+        playbackBaselineMatchIds = baselineMatchIds;
         playbackTrackingInitialized = true;
     }
 
@@ -182,7 +191,7 @@ function markPlaybackWindowShown(matchId) {
     writeShownMatchIds();
 }
 
-function getEligibleMatch(matches = getPlayerMatches()) {
+function getEligibleMatch(matches = getActiveMatchStates()) {
     if (!ensurePlaybackTracking(matches)) {
         return null;
     }
@@ -235,7 +244,7 @@ function getEligibleMatch(matches = getPlayerMatches()) {
 }
 
 function getCurrentMatch() {
-    const matches = getPlayerMatches();
+    const matches = getActiveMatchStates();
     const activeMatch = matches.find((match) => String(match.id) === String(activeFlowMatchId)) ?? null;
 
     if (activeMatch) {
@@ -269,7 +278,7 @@ function getCurrentMatch() {
     return eligibleMatch;
 }
 
-function getMatchById(matchId, matches = getPlayerMatches()) {
+function getMatchById(matchId, matches = getActiveMatchStates()) {
     return matches.find((match) => String(match.id) === String(matchId)) ?? null;
 }
 
@@ -598,7 +607,7 @@ function syncPlaybackMatchRefreshLoop(match) {
     }
 
     playbackMatchRefreshIntervalId = window.setInterval(() => {
-        void refreshPlayerMatches();
+        void refreshActiveMatchStates();
     }, 4000);
 }
 

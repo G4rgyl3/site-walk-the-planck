@@ -1,27 +1,30 @@
-import { getPlayerMatchDetails } from "./features/matchmaking/walk-the-planck-contract.js";
+import { getPlayerMatchDetail, getPlayerMatchDetails } from "./features/matchmaking/walk-the-planck-contract.js";
 import { ENDPOINTS, getJson, postJson } from "./api.js";
 import { getState as getWalletState } from "@ohlabs/js-chain/utility/wallet.js";
 import { getSessionToken } from "./session.js";
 import { formatSelections, renderAvailableMatches, renderPlayerMatches, setMatchmakingState } from "./ui/render.js";
 import {
+    getActiveMatchStates,
     getAvailableMatches,
     getCurrentGameMatch,
     getIsInQueue,
-    getPendingMatchSyncId,
-    getPlayerMatches,
+    getPendingActiveMatchSyncId,
     getQueues,
+    setActiveMatchStates,
+    setActiveMatchStatesHydrated,
     setAvailableMatches,
     setCurrentGameMatch,
     setCurrentGameMatchHydrated,
-    setPendingMatchSyncId,
-    setPlayerMatchesHydrated,
-    setPlayerMatches
+    setPendingActiveMatchSyncId,
+    setShipLogMatches,
+    setShipLogMatchesHydrated
 } from "./state/app-state.js";
 
 let refreshMatchCandidatesPromise = null;
-let refreshPlayerMatchesPromise = null;
+let refreshActiveMatchStatesPromise = null;
 let refreshCurrentGameMatchPromise = null;
-let playerMatchRefreshTimerId = null;
+let refreshShipLogMatchesPromise = null;
+let activeMatchRefreshTimerId = null;
 
 function isExpiredOpenMatch(match) {
     if (!match || Number(match.statusCode) !== 0 || !match.deadline) {
@@ -70,7 +73,7 @@ function hasQueueCountableMatch(matches) {
     );
 }
 
-function getBlockedBucketKeys(matches = getPlayerMatches()) {
+function getBlockedBucketKeys(matches = getActiveMatchStates()) {
     const blockedKeys = new Set(
         matches
             .filter((match) => match.statusCode === 0 || match.statusCode === 1)
@@ -166,43 +169,82 @@ async function refreshMatchCandidates() {
     }
 }
 
-async function refreshPlayerMatches() {
-    if (refreshPlayerMatchesPromise) {
-        return refreshPlayerMatchesPromise;
+async function refreshActiveMatchStates() {
+    if (refreshActiveMatchStatesPromise) {
+        return refreshActiveMatchStatesPromise;
     }
 
-    refreshPlayerMatchesPromise = (async () => {
-    const walletAddress = getWalletState().account;
+    refreshActiveMatchStatesPromise = (async () => {
+        const walletAddress = getWalletState().account;
+        const currentGameMatch = getCurrentGameMatch();
+        const currentMatchId = String(currentGameMatch?.id ?? currentGameMatch?.matchId ?? "");
 
-    if (!walletAddress) {
-        setPlayerMatches([]);
-        setPlayerMatchesHydrated(true);
-        setPendingMatchSyncId("");
-        renderPlayerMatches([]);
-        return;
-    }
-
-    try {
-        const matches = await getPlayerMatchDetails(walletAddress.toLowerCase());
-        const pendingMatchSyncId = String(getPendingMatchSyncId() || "");
-        setPlayerMatches(matches);
-        setPlayerMatchesHydrated(true);
-        if (pendingMatchSyncId && matches.some((match) => String(match.id) === pendingMatchSyncId)) {
-            setPendingMatchSyncId("");
+        if (!walletAddress || !currentMatchId) {
+            setActiveMatchStates([]);
+            setActiveMatchStatesHydrated(true);
+            setPendingActiveMatchSyncId("");
+            return;
         }
-        renderPlayerMatches(matches);
-    } catch (err) {
-        console.error(err);
-        setPlayerMatches([]);
-        setPlayerMatchesHydrated(false);
-        renderPlayerMatches([]);
-    }
+
+        try {
+            const match = await getPlayerMatchDetail(walletAddress.toLowerCase(), currentMatchId);
+            const matches = match ? [match] : [];
+            const pendingActiveMatchSyncId = String(getPendingActiveMatchSyncId() || "");
+            setActiveMatchStates(matches);
+            setActiveMatchStatesHydrated(true);
+            if (pendingActiveMatchSyncId && matches.some((nextMatch) => String(nextMatch.id) === pendingActiveMatchSyncId)) {
+                setPendingActiveMatchSyncId("");
+            }
+        } catch (err) {
+            console.error(err);
+            setActiveMatchStates([]);
+            setActiveMatchStatesHydrated(false);
+        }
     })();
 
     try {
-        return await refreshPlayerMatchesPromise;
+        return await refreshActiveMatchStatesPromise;
     } finally {
-        refreshPlayerMatchesPromise = null;
+        refreshActiveMatchStatesPromise = null;
+    }
+}
+
+async function refreshShipLogMatches(options = {}) {
+    const { force = false } = options;
+
+    if (refreshShipLogMatchesPromise) {
+        return refreshShipLogMatchesPromise;
+    }
+
+    refreshShipLogMatchesPromise = (async () => {
+        const walletAddress = getWalletState().account;
+
+        if (!walletAddress) {
+            setShipLogMatches([]);
+            setShipLogMatchesHydrated(true);
+            renderPlayerMatches([]);
+            return;
+        }
+
+        try {
+            const matches = await getPlayerMatchDetails(walletAddress.toLowerCase());
+            setShipLogMatches(matches);
+            setShipLogMatchesHydrated(true);
+            renderPlayerMatches(matches);
+        } catch (err) {
+            console.error(err);
+            setShipLogMatches([]);
+            setShipLogMatchesHydrated(false);
+            if (force) {
+                renderPlayerMatches([]);
+            }
+        }
+    })();
+
+    try {
+        return await refreshShipLogMatchesPromise;
+    } finally {
+        refreshShipLogMatchesPromise = null;
     }
 }
 
@@ -268,22 +310,23 @@ async function dismissCurrentGameMatch(matchId) {
     }
 }
 
-function scheduleRefreshPlayerMatches(delayMs = 300) {
-    if (playerMatchRefreshTimerId) {
-        window.clearTimeout(playerMatchRefreshTimerId);
+function scheduleRefreshActiveMatchStates(delayMs = 300) {
+    if (activeMatchRefreshTimerId) {
+        window.clearTimeout(activeMatchRefreshTimerId);
     }
 
-    playerMatchRefreshTimerId = window.setTimeout(() => {
-        playerMatchRefreshTimerId = null;
-        void refreshPlayerMatches();
+    activeMatchRefreshTimerId = window.setTimeout(() => {
+        activeMatchRefreshTimerId = null;
+        void refreshActiveMatchStates();
     }, delayMs);
 }
 
 export {
     dismissCurrentGameMatch,
     hasMatchCandidate,
+    refreshActiveMatchStates,
     refreshCurrentGameMatch,
     refreshMatchCandidates,
-    refreshPlayerMatches,
-    scheduleRefreshPlayerMatches
+    refreshShipLogMatches,
+    scheduleRefreshActiveMatchStates
 }

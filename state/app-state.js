@@ -9,9 +9,11 @@ const state = {
     availableMatches: [],
     currentGameMatch: null,
     currentGameMatchHydrated: false,
-    playerMatches: [],
-    playerMatchesHydrated: false,
-    pendingMatchSyncId: ""
+    activeMatchStates: [],
+    activeMatchStatesHydrated: false,
+    shipLogMatches: [],
+    shipLogMatchesHydrated: false,
+    pendingActiveMatchSyncId: ""
 };
 
 const listeners = new Set();
@@ -29,9 +31,11 @@ function getState() {
         availableMatches: [...state.availableMatches],
         currentGameMatch: state.currentGameMatch ? { ...state.currentGameMatch } : null,
         currentGameMatchHydrated: state.currentGameMatchHydrated,
-        playerMatches: [...state.playerMatches],
-        playerMatchesHydrated: state.playerMatchesHydrated,
-        pendingMatchSyncId: state.pendingMatchSyncId
+        activeMatchStates: [...state.activeMatchStates],
+        activeMatchStatesHydrated: state.activeMatchStatesHydrated,
+        shipLogMatches: [...state.shipLogMatches],
+        shipLogMatchesHydrated: state.shipLogMatchesHydrated,
+        pendingActiveMatchSyncId: state.pendingActiveMatchSyncId
     };
 }
 
@@ -111,30 +115,48 @@ function setCurrentGameMatchHydrated(currentGameMatchHydrated) {
     notify();
 }
 
-function setPlayerMatches(matches) {
-    state.playerMatches = Array.isArray(matches) ? [...matches] : [];
+function setActiveMatchStates(matches) {
+    state.activeMatchStates = Array.isArray(matches) ? [...matches] : [];
     notify();
 }
 
-function getPlayerMatches() {
-    return [...state.playerMatches];
+function getActiveMatchStates() {
+    return [...state.activeMatchStates];
 }
 
-function getPlayerMatchesHydrated() {
-    return state.playerMatchesHydrated;
+function getActiveMatchStatesHydrated() {
+    return state.activeMatchStatesHydrated;
 }
 
-function setPlayerMatchesHydrated(playerMatchesHydrated) {
-    state.playerMatchesHydrated = !!playerMatchesHydrated;
+function setActiveMatchStatesHydrated(activeMatchStatesHydrated) {
+    state.activeMatchStatesHydrated = !!activeMatchStatesHydrated;
     notify();
 }
 
-function getPendingMatchSyncId() {
-    return state.pendingMatchSyncId;
+function setShipLogMatches(matches) {
+    state.shipLogMatches = Array.isArray(matches) ? [...matches] : [];
+    notify();
 }
 
-function setPendingMatchSyncId(pendingMatchSyncId) {
-    state.pendingMatchSyncId = String(pendingMatchSyncId || "");
+function getShipLogMatches() {
+    return [...state.shipLogMatches];
+}
+
+function getShipLogMatchesHydrated() {
+    return state.shipLogMatchesHydrated;
+}
+
+function setShipLogMatchesHydrated(shipLogMatchesHydrated) {
+    state.shipLogMatchesHydrated = !!shipLogMatchesHydrated;
+    notify();
+}
+
+function getPendingActiveMatchSyncId() {
+    return state.pendingActiveMatchSyncId;
+}
+
+function setPendingActiveMatchSyncId(pendingActiveMatchSyncId) {
+    state.pendingActiveMatchSyncId = String(pendingActiveMatchSyncId || "");
     notify();
 }
 
@@ -143,35 +165,41 @@ function resetMatchmakingState() {
     state.availableMatches = [];
     state.currentGameMatch = null;
     state.currentGameMatchHydrated = false;
-    state.playerMatches = [];
-    state.playerMatchesHydrated = false;
-    state.pendingMatchSyncId = "";
+    state.activeMatchStates = [];
+    state.activeMatchStatesHydrated = false;
+    state.shipLogMatches = [];
+    state.shipLogMatchesHydrated = false;
+    state.pendingActiveMatchSyncId = "";
     notify();
 }
 
 export {
+    getActiveMatchStates,
+    getActiveMatchStatesHydrated,
     getAvailableMatches,
     getCurrentGameMatch,
     getCurrentGameMatchHydrated,
     getIsInQueue,
-    getPendingMatchSyncId,
-    getPlayerMatches,
-    getPlayerMatchesHydrated,
+    getPendingActiveMatchSyncId,
     getQueues,
     getSelectedPreferences,
     getSessionTokenValue,
+    getShipLogMatches,
+    getShipLogMatchesHydrated,
     getState,
     getWalletAddress,
     notify,
     resetMatchmakingState,
+    setActiveMatchStates,
+    setActiveMatchStatesHydrated,
     setAvailableMatches,
     setCurrentGameMatch,
     setCurrentGameMatchHydrated,
     setIsInQueue,
-    setPendingMatchSyncId,
-    setPlayerMatchesHydrated,
-    setPlayerMatches,
+    setPendingActiveMatchSyncId,
     setQueues,
     setSelectedPreferences,
+    setShipLogMatches,
+    setShipLogMatchesHydrated,
     subscribe
 };

@@ -15,10 +15,11 @@ import {
 } from "./walk-the-planck-contract.js";
 import {
     hasMatchCandidate,
+    refreshActiveMatchStates,
     refreshCurrentGameMatch,
     refreshMatchCandidates,
-    refreshPlayerMatches,
-    scheduleRefreshPlayerMatches
+    refreshShipLogMatches,
+    scheduleRefreshActiveMatchStates
 } from "../../matchmaking.js";
 import { onQueuePreferencesChanged } from "../../lib/matchmaking-events.js";
 import { createQueueOperationId, leaveQueue, refreshQueues, startPolling, suppressQueueOperation, truthUpCommittedMatches } from "../../queue.js";
@@ -26,7 +27,8 @@ import { resetSessionToken } from "../../session.js";
 import {
     getCurrentGameMatch,
     getIsInQueue,
-    getPlayerMatches,
+    getActiveMatchStates,
+    getShipLogMatchesHydrated,
     getSelectedPreferences,
     getSessionTokenValue,
     resetMatchmakingState,
@@ -37,6 +39,7 @@ import {
     availableMatchList,
     connectBtn,
     entryFeeSelector,
+    historyTabBtn,
     joinQueueBtn,
     leaveQueueBtn,
     matchSizeSelector,
@@ -44,6 +47,7 @@ import {
 } from "../../ui/dom.js";
 import {
     formatSelections,
+    renderPlayerMatches,
     setMatchmakingState,
     setSelectorsLocked,
     showToast,
@@ -88,7 +92,7 @@ function getWalletActionErrorMessage(err) {
     return "Please make sure your wallet is signed in and unlocked, then try again.";
 }
 
-function hasBlockingMatch(matches = getPlayerMatches()) {
+function hasBlockingMatch(matches = getActiveMatchStates()) {
     const currentGameMatch = getCurrentGameMatch();
     if (currentGameMatch?.id || currentGameMatch?.matchId) {
         return true;
@@ -102,7 +106,7 @@ function hasBlockingMatch(matches = getPlayerMatches()) {
     );
 }
 
-function getBlockedBucketKeys(matches = getPlayerMatches()) {
+function getBlockedBucketKeys(matches = getActiveMatchStates()) {
     const blockedKeys = new Set(
         matches
             .filter((match) =>
@@ -164,8 +168,8 @@ function setupMultiSelectChips(container) {
 }
 
 async function updateMatchmakingUI() {
-    await refreshPlayerMatches();
     await refreshCurrentGameMatch();
+    await refreshActiveMatchStates();
 
     const isInQueue = getIsInQueue();
     const activeOnChainMatch = hasBlockingMatch();
@@ -317,7 +321,7 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
         } catch (syncError) {
             console.error(syncError);
             showToast(`Boarding confirmed for match #${matchId}, but the harbor ledger failed to sync.`);
-            await refreshPlayerMatches();
+            await refreshActiveMatchStates();
             await refreshQueues();
             return;
         }
@@ -350,6 +354,9 @@ async function handleClaimMatchClick(matchId) {
         await tx.wait();
         showToast(`Spoils claimed for match #${matchId}.`, { variant: "success" });
         await updateMatchmakingUI();
+        if (getShipLogMatchesHydrated()) {
+            await refreshShipLogMatches({ force: true });
+        }
         await refreshQueues();
     } catch (err) {
         console.error(err);
@@ -370,6 +377,9 @@ async function handleClaimRefundClick(matchId) {
         await tx.wait();
         showToast(`Refund confirmed for match #${matchId}.`, { variant: "success" });
         await updateMatchmakingUI();
+        if (getShipLogMatchesHydrated()) {
+            await refreshShipLogMatches({ force: true });
+        }
         await refreshQueues();
     } catch (err) {
         console.error(err);
@@ -397,6 +407,7 @@ async function syncWalletState(walletState) {
 
         stopHeartbeat();
         resetMatchmakingState();
+        renderPlayerMatches([]);
         await endPlayerSession(previousWalletAddress, previousSessionToken);
         const nextSessionToken = resetSessionToken();
         await startPlayerSession(walletAddress, nextSessionToken);
@@ -412,6 +423,7 @@ async function syncWalletState(walletState) {
 
         stopHeartbeat();
         resetMatchmakingState();
+        renderPlayerMatches([]);
         await endPlayerSession(previousWalletAddress, previousSessionToken);
         resetSessionToken();
         showToast("Wallet disconnected.", { variant: "info" });
@@ -424,15 +436,15 @@ async function syncWalletState(walletState) {
     if (walletAddress) {
         void (async () => {
             await truthUpCommittedMatches();
-            await refreshPlayerMatches();
             await refreshCurrentGameMatch();
+            await refreshActiveMatchStates();
             await refreshQueues();
         })();
         return;
     }
 
-    void refreshPlayerMatches().finally(() => {
-        void refreshCurrentGameMatch();
+    void refreshCurrentGameMatch().finally(() => {
+        void refreshActiveMatchStates();
     });
     void refreshQueues();
 }
@@ -452,6 +464,14 @@ function bindEvents() {
 
     if (refreshQueueBtn) {
         refreshQueueBtn.addEventListener("click", refreshQueues);
+    }
+
+    if (historyTabBtn) {
+        historyTabBtn.addEventListener("click", () => {
+            if (!getShipLogMatchesHydrated()) {
+                void refreshShipLogMatches({ force: true });
+            }
+        });
     }
 
     if (availableMatchList) {
@@ -495,7 +515,7 @@ function bindMatchmakingEventRefresh() {
             payload.action === "active_matches_released"
         ) {
             void refreshCurrentGameMatch();
-            scheduleRefreshPlayerMatches();
+            scheduleRefreshActiveMatchStates();
         }
     });
 }
@@ -512,8 +532,8 @@ async function initMatchmakingController() {
     await initializeWallet();
     updateWalletUI();
     await truthUpCommittedMatches();
-    await refreshPlayerMatches();
     await refreshCurrentGameMatch();
+    await refreshActiveMatchStates();
     await updateMatchmakingUI();
     await refreshQueues();
 }

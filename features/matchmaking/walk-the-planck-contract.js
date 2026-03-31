@@ -294,6 +294,33 @@ async function getPlayerMatchDetails(playerAddress) {
     return matches.sort((left, right) => Number(right.id) - Number(left.id));
 }
 
+async function getPlayerMatchDetail(playerAddress, matchId) {
+    if (!CHAIN_HISTORY_READS_ENABLED || !matchId) {
+        return null;
+    }
+
+    const contract = new WalkThePlanckContract();
+    const [record, players, claimableIds, refundableIds] = await Promise.all([
+        contract.getMatch(matchId),
+        contract.getMatchPlayers(matchId),
+        contract.getClaimableMatches(playerAddress),
+        contract.getRefundableMatches(playerAddress)
+    ]);
+
+    const normalizedMatchId = toStringValue(matchId);
+    const claimableSet = new Set((claimableIds ?? []).map((value) => toStringValue(value)));
+    const refundableSet = new Set((refundableIds ?? []).map((value) => toStringValue(value)));
+
+    return normalizeMatchRecord(
+        normalizedMatchId,
+        record,
+        players,
+        claimableSet,
+        refundableSet,
+        playerAddress
+    );
+}
+
 async function getActiveMatchBuckets() {
     const contract = new WalkThePlanckContract();
     const buckets = await contract.getActiveMatchBuckets();
@@ -361,6 +388,7 @@ export {
     claimPublishedRefund,
     decodeContractError,
     getActiveMatchBuckets,
+    getPlayerMatchDetail,
     getPublishedMatchSnapshot,
     getPlayerMatchDetails,
     WalkThePlanckContract,
