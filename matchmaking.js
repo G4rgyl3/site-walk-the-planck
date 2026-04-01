@@ -242,7 +242,24 @@ async function refreshShipLogMatches(options = {}) {
         }
 
         try {
-            const matches = await getPlayerMatchDetails(walletAddress.toLowerCase());
+            setShipLogMatches([]);
+            setShipLogMatchesHydrated(false);
+
+            const matches = await getPlayerMatchDetails(walletAddress.toLowerCase(), {
+                onMatchIds: (matchIds) => {
+                    renderPlayerMatches([], {
+                        totalCount: matchIds.length,
+                        loading: matchIds.length > 0
+                    });
+                },
+                onProgress: (partialMatches, progress) => {
+                    setShipLogMatches(partialMatches);
+                    renderPlayerMatches(partialMatches, {
+                        totalCount: progress.totalCount,
+                        loading: progress.loadedCount < progress.totalCount
+                    });
+                }
+            });
             setShipLogMatches(matches);
             setShipLogMatchesHydrated(true);
             renderPlayerMatches(matches);

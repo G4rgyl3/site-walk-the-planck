@@ -1394,8 +1394,68 @@
       gap: 16px;
     }
 
+    .available-match-card-loading {
+      border-color: rgba(83, 103, 158, 0.2);
+      background: rgba(6, 16, 28, 0.42);
+    }
+
     .available-match-info {
       min-width: 0;
+    }
+
+    .available-match-loading-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .available-match-loading-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .available-match-spinner {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 2px solid rgba(95, 209, 255, 0.18);
+      border-top-color: var(--cyan-1);
+      animation: available-match-spin 0.75s linear infinite;
+      flex: 0 0 auto;
+    }
+
+    .available-match-loading-line {
+      height: 10px;
+      width: 72%;
+      margin-top: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(83, 103, 158, 0.18), rgba(167, 139, 250, 0.24), rgba(83, 103, 158, 0.18));
+      background-size: 220% 100%;
+      animation: available-match-shimmer 1.6s ease-in-out infinite;
+    }
+
+    .available-match-loading-line-wide {
+      width: 88%;
+    }
+
+    .available-match-loading-line-medium {
+      width: 56%;
+    }
+
+    .available-match-loading-actions {
+      align-self: center;
+      flex: 0 0 auto;
+    }
+
+    .available-match-loading-button {
+      width: 132px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(90deg, rgba(83, 103, 158, 0.16), rgba(167, 139, 250, 0.2), rgba(83, 103, 158, 0.16));
+      background-size: 220% 100%;
+      animation: available-match-shimmer 1.6s ease-in-out infinite;
     }
 
     .available-match-name {
@@ -1420,6 +1480,16 @@
       0% { transform: scale(1); opacity: 0.9; }
       50% { transform: scale(1.08); opacity: 1; }
       100% { transform: scale(1); opacity: 0.9; }
+    }
+
+    @keyframes available-match-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes available-match-shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -20% 0; }
     }
 
     @keyframes playback-transition-wave {

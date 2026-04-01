@@ -410,79 +410,108 @@ function formatDateTime(unixSeconds) {
     return new Date(unixSeconds * 1000).toLocaleString();
 }
 
-function renderPlayerMatches(matches) {
+function renderPlayerMatchCard(match, supportedChain, unsupportedChainMessage) {
+    const playerList = match.players.length
+        ? match.players.map(shortenWalletAddress).join(", ")
+        : "Loading players...";
+    const entropyExplorerUrl = getEntropyExplorerUrl(match);
+
+    return `
+        <div class="available-match-card">
+            <div class="available-match-info">
+                <div class="available-match-name">
+                    Match #${match.id} | ${match.maxPlayers} Players | ${fromWei(match.entryFeeWei)} ETH
+                </div>
+                <div class="available-match-meta">
+                    ${match.playerStatus} | ${match.playerCount}/${match.maxPlayers} players | ${match.statusLabel}
+                </div>
+                <div class="available-match-meta">
+                    Players: ${playerList}
+                </div>
+                <div class="available-match-meta">
+                    Pot: ${fromWei(match.totalPotWei)} ETH | Deadline: ${formatDateTime(match.deadline)}
+                </div>
+                ${entropyExplorerUrl ? `
+                    <div class="available-match-meta">
+                        Entropy Sequence: ${match.sequenceNumber}
+                    </div>
+                ` : ""}
+            </div>
+            <div>
+                ${entropyExplorerUrl ? `
+                    <a
+                        class="btn btn-neutral"
+                        href="${entropyExplorerUrl}"
+                        target="_blank"
+                        rel="noreferrer noopener"
+                    >
+                        Entropy Explorer
+                    </a>
+                ` : ""}
+                ${match.isClaimable ? `
+                    <button
+                        type="button"
+                        class="btn btn-join-match"
+                        data-claim-match-id="${match.id}"
+                        ${supportedChain ? "" : `disabled title="${unsupportedChainMessage}"`}
+                    >
+                        ${supportedChain ? "Claim Spoils" : "Switch to Base"}
+                    </button>
+                ` : ""}
+                ${match.isRefundable ? `
+                    <button
+                        type="button"
+                        class="btn btn-neutral"
+                        data-refund-match-id="${match.id}"
+                        ${supportedChain ? "" : `disabled title="${unsupportedChainMessage}"`}
+                    >
+                        ${supportedChain ? "Claim Refund" : "Switch to Base"}
+                    </button>
+                ` : ""}
+            </div>
+        </div>
+    `;
+}
+
+function renderPlayerMatchSkeleton(index) {
+    return `
+        <div class="available-match-card available-match-card-loading" data-loading-card="${index}">
+            <div class="available-match-info">
+                <div class="available-match-loading-head">
+                    <span class="available-match-spinner" aria-hidden="true"></span>
+                    <div class="available-match-loading-title">Loading match...</div>
+                </div>
+                <div class="available-match-loading-line available-match-loading-line-wide"></div>
+                <div class="available-match-loading-line"></div>
+                <div class="available-match-loading-line available-match-loading-line-medium"></div>
+            </div>
+            <div class="available-match-loading-actions">
+                <div class="available-match-loading-button"></div>
+            </div>
+        </div>
+    `;
+}
+
+function renderPlayerMatches(matches, options = {}) {
     if (!playerMatchList) return;
 
     const supportedChain = isPublishedGameChainSupported(getWalletState().chainId);
     const unsupportedChainMessage = getSupportedGameChainMessage(getWalletState().chainId);
+    const totalCount = Number(options.totalCount ?? matches.length ?? 0);
+    const loading = options.loading === true;
 
-    if (!Array.isArray(matches) || matches.length === 0) {
+    if ((!Array.isArray(matches) || matches.length === 0) && totalCount === 0) {
         playerMatchList.innerHTML = "";
         return;
     }
 
-    playerMatchList.innerHTML = matches.map((match) => {
-        const playerList = match.players.length
-            ? match.players.map(shortenWalletAddress).join(", ")
-            : "Loading players...";
-        const entropyExplorerUrl = getEntropyExplorerUrl(match);
+    const resolvedMatches = Array.isArray(matches) ? matches : [];
+    const placeholderCount = loading ? Math.max(0, totalCount - resolvedMatches.length) : 0;
 
-        return `
-            <div class="available-match-card">
-                <div class="available-match-info">
-                    <div class="available-match-name">
-                        Match #${match.id} | ${match.maxPlayers} Players | ${fromWei(match.entryFeeWei)} ETH
-                    </div>
-                    <div class="available-match-meta">
-                        ${match.playerStatus} | ${match.playerCount}/${match.maxPlayers} players | ${match.statusLabel}
-                    </div>
-                    <div class="available-match-meta">
-                        Players: ${playerList}
-                    </div>
-                    <div class="available-match-meta">
-                        Pot: ${fromWei(match.totalPotWei)} ETH | Deadline: ${formatDateTime(match.deadline)}
-                    </div>
-                    ${entropyExplorerUrl ? `
-                        <div class="available-match-meta">
-                            Entropy Sequence: ${match.sequenceNumber}
-                        </div>
-                    ` : ""}
-                </div>
-                <div>
-                    ${entropyExplorerUrl ? `
-                        <a
-                            class="btn btn-neutral"
-                            href="${entropyExplorerUrl}"
-                            target="_blank"
-                            rel="noreferrer noopener"
-                        >
-                            Entropy Explorer
-                        </a>
-                    ` : ""}
-                    ${match.isClaimable ? `
-                        <button
-                            type="button"
-                            class="btn btn-join-match"
-                            data-claim-match-id="${match.id}"
-                            ${supportedChain ? "" : `disabled title="${unsupportedChainMessage}"`}
-                        >
-                            ${supportedChain ? "Claim Spoils" : "Switch to Base"}
-                        </button>
-                    ` : ""}
-                    ${match.isRefundable ? `
-                        <button
-                            type="button"
-                            class="btn btn-neutral"
-                            data-refund-match-id="${match.id}"
-                            ${supportedChain ? "" : `disabled title="${unsupportedChainMessage}"`}
-                        >
-                            ${supportedChain ? "Claim Refund" : "Switch to Base"}
-                        </button>
-                    ` : ""}
-                </div>
-            </div>
-        `;
-    }).join("");
+    playerMatchList.innerHTML = [
+        ...resolvedMatches.map((match) => renderPlayerMatchCard(match, supportedChain, unsupportedChainMessage)),
+        ...Array.from({ length: placeholderCount }, (_, index) => renderPlayerMatchSkeleton(index))
+    ].join("");
 }
 
 if (activityTabs) {

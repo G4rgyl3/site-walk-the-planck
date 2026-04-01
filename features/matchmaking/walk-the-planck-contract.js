@@ -305,10 +305,12 @@ function normalizeActiveMatchBucket(bucket) {
     };
 }
 
-async function getPlayerMatchDetails(playerAddress) {
+async function getPlayerMatchDetails(playerAddress, options = {}) {
     if (!CHAIN_HISTORY_READS_ENABLED) {
         return [];
     }
+
+    const { onMatchIds = null, onProgress = null } = options;
 
     const contract = new WalkThePlanckContract();
     const [matchIds, claimableIds, refundableIds] = await Promise.all([
@@ -321,6 +323,8 @@ async function getPlayerMatchDetails(playerAddress) {
     const refundableSet = new Set((refundableIds ?? []).map((value) => toStringValue(value)));
     const uniqueMatchIds = [...new Set((matchIds ?? []).map((value) => toStringValue(value)))];
     const matches = [];
+
+    onMatchIds?.(uniqueMatchIds);
 
     for (let index = 0; index < uniqueMatchIds.length; index += 1) {
         const matchId = uniqueMatchIds[index];
@@ -339,6 +343,12 @@ async function getPlayerMatchDetails(playerAddress) {
                 playerAddress
             )
         );
+
+        const sortedMatches = [...matches].sort((left, right) => Number(right.id) - Number(left.id));
+        onProgress?.(sortedMatches, {
+            loadedCount: sortedMatches.length,
+            totalCount: uniqueMatchIds.length
+        });
 
         if (index < uniqueMatchIds.length - 1) {
             await sleep(200);
