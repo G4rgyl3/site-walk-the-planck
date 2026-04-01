@@ -62,6 +62,7 @@ if (!in_array($entryFeeWei, $allowedFees, true)) {
 $matchFilled = false;
 $removedCount = 0;
 $filledParticipants = [];
+$queuedBuckets = [];
 
 try {
     $pdo->beginTransaction();
@@ -82,6 +83,26 @@ try {
     if ($sessionUpdate->rowCount() === 0) {
         throw new RuntimeException("Session not found");
     }
+
+    $queuedBucketsStmt = $pdo->prepare("
+        SELECT max_players, entry_fee_wei
+        FROM player_match_preferences
+        WHERE wallet_address = :wallet
+          AND session_token = :sessionToken
+        FOR UPDATE
+    ");
+    $queuedBucketsStmt->execute([
+        ":wallet" => $walletAddress,
+        ":sessionToken" => $sessionToken
+    ]);
+
+    $queuedBuckets = array_map(
+        static fn(array $bucket) => [
+            "maxPlayers" => (int)($bucket["max_players"] ?? 0),
+            "entryFeeWei" => (string)($bucket["entry_fee_wei"] ?? "")
+        ],
+        $queuedBucketsStmt->fetchAll()
+    );
 
     $pdo->prepare("
         INSERT INTO player_session_matches (
@@ -117,13 +138,9 @@ try {
         DELETE FROM player_match_preferences
         WHERE wallet_address = :wallet
           AND session_token = :sessionToken
-          AND max_players = :maxPlayers
-          AND entry_fee_wei = :entryFeeWei
     ")->execute([
         ":wallet" => $walletAddress,
-        ":sessionToken" => $sessionToken,
-        ":maxPlayers" => $maxPlayers,
-        ":entryFeeWei" => $entryFeeWei
+        ":sessionToken" => $sessionToken
     ]);
 
     $matchCountStmt = $pdo->prepare("
@@ -231,10 +248,7 @@ publishMatchmakingEvent(MATCHMAKING_EVENT_TYPE_QUEUE_PREFERENCES_CHANGED, [
     "sessionToken" => $sessionToken,
     "matchId" => $matchId,
     "deadline" => $deadline > 0 ? $deadline : null,
-    "buckets" => [[
-        "maxPlayers" => $maxPlayers,
-        "entryFeeWei" => $entryFeeWei
-    ]]
+    "buckets" => $queuedBuckets
 ]);
 
 if ($matchFilled && $removedCount > 0) {
