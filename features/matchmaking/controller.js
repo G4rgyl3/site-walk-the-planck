@@ -50,6 +50,7 @@ import {
 } from "../../ui/dom.js";
 import {
     formatSelections,
+    isQueueChainReady,
     renderPlayerMatches,
     setMatchmakingState,
     setSelectorsLocked,
@@ -59,8 +60,11 @@ import {
 
 let unsubscribeWallet = null;
 let lastWalletAccount = null;
+let lastWalletChainId = null;
 let unsubscribeQueueEvents = null;
 let unsubscribeMatchmakingState = null;
+let lastUnsupportedChainToastKey = "";
+let pendingChainReload = false;
 
 function isExpiredOpenMatch(match) {
     if (!match || Number(match.statusCode) !== 0 || !match.deadline) {
@@ -98,6 +102,21 @@ function getWalletActionErrorMessage(err) {
 
 function showUnsupportedChainMessage() {
     showToast(getSupportedGameChainMessage(), { variant: "info" });
+}
+
+function scheduleChainReload(chainId) {
+    if (pendingChainReload) {
+        return;
+    }
+
+    pendingChainReload = true;
+    showToast(`Chain changed to ${String(chainId || "").toUpperCase()}. Reloading...`, {
+        variant: "info",
+        duration: 1600
+    });
+    window.setTimeout(() => {
+        window.location.reload();
+    }, 900);
 }
 
 function hasBlockingMatch(matches = getActiveMatchStates()) {
@@ -178,8 +197,11 @@ function setupMultiSelectChips(container) {
 function renderMatchmakingState() {
     const isInQueue = getIsInQueue();
     const activeOnChainMatch = hasBlockingMatch();
+    const queueChainReady = isQueueChainReady();
+    const walletState = getWalletState();
+    const chainResolved = walletState.chainId != null;
 
-    setSelectorsLocked(isInQueue);
+    setSelectorsLocked(isInQueue || !queueChainReady);
     updateWalletUI();
 
     if (isInQueue) {
@@ -189,6 +211,17 @@ function renderMatchmakingState() {
             detail: "Your wallet is in queue and being considered for the planks you selected.",
             meta: formatSelections(),
             tone: "searching"
+        });
+        return;
+    }
+
+    if (walletState.account && chainResolved && !queueChainReady) {
+        setMatchmakingState({
+            searching: false,
+            title: "Wrong chain",
+            detail: getSupportedGameChainMessage(walletState.chainId),
+            meta: "Switch networks to queue, board, claim, and view your ship log.",
+            tone: "idle"
         });
         return;
     }
@@ -302,6 +335,11 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
 
     if (!walletAddress) {
         showToast("Connect your wallet first.", { variant: "info" });
+        return;
+    }
+
+    if (!isPublishedGameChainSupported(getWalletState().chainId)) {
+        showUnsupportedChainMessage();
         return;
     }
 
@@ -428,9 +466,39 @@ function handleWalletStateChange(walletState) {
 async function syncWalletState(walletState) {
     const walletAddress = walletState.account || "";
     const previousWalletAddress = lastWalletAccount;
+    const previousChainId = lastWalletChainId;
     const previousSessionToken = getSessionTokenValue();
 
     lastWalletAccount = walletAddress;
+    lastWalletChainId = walletState.chainId ?? null;
+
+    if (
+        walletAddress &&
+        previousChainId != null &&
+        walletState.chainId != null &&
+        String(previousChainId).toLowerCase() !== String(walletState.chainId).toLowerCase()
+    ) {
+        scheduleChainReload(walletState.chainId);
+        return;
+    }
+
+    if (
+        walletAddress &&
+        walletState.chainId != null &&
+        !isPublishedGameChainSupported(walletState.chainId)
+    ) {
+        const unsupportedChainToastKey = `${walletAddress}:${String(walletState.chainId ?? "")}`;
+        if (lastUnsupportedChainToastKey !== unsupportedChainToastKey) {
+            lastUnsupportedChainToastKey = unsupportedChainToastKey;
+            showUnsupportedChainMessage();
+        }
+    } else if (
+        !walletAddress ||
+        walletState.chainId == null ||
+        isPublishedGameChainSupported(walletState.chainId)
+    ) {
+        lastUnsupportedChainToastKey = "";
+    }
 
     if (walletAddress && previousWalletAddress && walletAddress !== previousWalletAddress) {
         if (getIsInQueue()) {

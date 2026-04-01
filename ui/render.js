@@ -51,6 +51,10 @@ function normalizeChainId(chainId) {
     }
 }
 
+function isChainResolved(chainId) {
+    return normalizeChainId(chainId) != null;
+}
+
 function getChainLabel(chainId) {
     const normalizedChainId = normalizeChainId(chainId);
 
@@ -143,7 +147,9 @@ function updateActionButtons() {
     const walletState = getWalletState();
     const connected = !!walletState.account;
     const isInQueue = getIsInQueue();
+    const chainResolved = isChainResolved(walletState.chainId);
     const supportedChain = isPublishedGameChainSupported(walletState.chainId);
+    const queueAvailable = connected && chainResolved && supportedChain;
 
     if (connectBtn) {
         connectBtn.disabled = connected;
@@ -152,8 +158,11 @@ function updateActionButtons() {
     }
 
     if (joinQueueBtn) {
-        joinQueueBtn.disabled = !connected || isInQueue;
+        joinQueueBtn.disabled = !queueAvailable || isInQueue;
         joinQueueBtn.textContent = isInQueue ? "Searching..." : "Join queue";
+        joinQueueBtn.title = connected && chainResolved && !supportedChain
+            ? getSupportedGameChainMessage(walletState.chainId)
+            : "";
     }
 
     if (leaveQueueBtn) {
@@ -165,8 +174,8 @@ function updateActionButtons() {
     }
 
     if (historyTabBtn) {
-        historyTabBtn.disabled = connected && !supportedChain;
-        historyTabBtn.title = connected && !supportedChain
+        historyTabBtn.disabled = connected && chainResolved && !supportedChain;
+        historyTabBtn.title = connected && chainResolved && !supportedChain
             ? getSupportedGameChainMessage(walletState.chainId)
             : "";
     }
@@ -176,9 +185,10 @@ function updateWalletUI() {
     const walletState = getWalletState();
     const walletAddress = walletState.account || "";
     const connected = !!walletAddress;
+    const chainResolved = isChainResolved(walletState.chainId);
     const supportedChain = isPublishedGameChainSupported(walletState.chainId);
     const chainLabel = getChainLabel(walletState.chainId);
-    const unsupportedChainMessage = connected && !supportedChain
+    const unsupportedChainMessage = connected && chainResolved && !supportedChain
         ? getSupportedGameChainMessage(walletState.chainId)
         : "";
 
@@ -193,7 +203,7 @@ function updateWalletUI() {
                     </div>
                     <div class="wallet-address-short">${shortenWalletAddress(walletAddress)}</div>
                 </div>
-                <div class="wallet-network-line">Network: ${chainLabel}</div>
+                <div class="wallet-network-line">${chainLabel}</div>
                 ${unsupportedChainMessage ? `
                     <div class="wallet-network-warning">${unsupportedChainMessage}</div>
                 ` : ""}
@@ -225,6 +235,14 @@ function setSelectorsLocked(locked) {
             button.classList.toggle("locked", locked);
         });
     });
+}
+
+function isQueueChainReady() {
+    const walletState = getWalletState();
+    return !walletState.account || (
+        isChainResolved(walletState.chainId) &&
+        isPublishedGameChainSupported(walletState.chainId)
+    );
 }
 
 function renderQueues(queues) {
@@ -538,6 +556,7 @@ function setMatchmakingState({ searching, title, detail, meta, tone }) {
 
 export {
     formatSelections,
+    isQueueChainReady,
     renderAvailableMatches,
     renderPlayerMatches,
     renderQueues,
