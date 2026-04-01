@@ -101,7 +101,7 @@ function getWalletActionErrorMessage(err) {
 }
 
 function showUnsupportedChainMessage() {
-    showToast(getSupportedGameChainMessage(), { variant: "info" });
+    showToast(getSupportedGameChainMessage(), { variant: "error" });
 }
 
 function scheduleChainReload(chainId) {
@@ -218,7 +218,7 @@ function renderMatchmakingState() {
     if (walletState.account && chainResolved && !queueChainReady) {
         setMatchmakingState({
             searching: false,
-            title: "Wrong chain",
+            title: "Switch chain",
             detail: getSupportedGameChainMessage(walletState.chainId),
             meta: "Switch networks to queue, board, claim, and view your ship log.",
             tone: "idle"

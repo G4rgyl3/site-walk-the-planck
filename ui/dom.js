@@ -3,6 +3,7 @@ const joinQueueBtn = document.getElementById("joinQueueBtn");
 const leaveQueueBtn = document.getElementById("leaveQueueBtn");
 const refreshQueueBtn = document.getElementById("refreshQueueBtn");
 const walletBox = document.getElementById("connectedWalletBox");
+const walletChainNotice = document.getElementById("walletChainNotice");
 const sessionBox = document.getElementById("sessionTokenBox");
 const activityTabs = document.getElementById("activityTabs");
 const queueTabBtn = document.getElementById("queueTabBtn");
@@ -93,5 +94,6 @@ export {
     tutorialSpotlight,
     tutorialStepLabel,
     tutorialTitle,
+    walletChainNotice,
     walletBox
 };

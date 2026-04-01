@@ -23,6 +23,7 @@ import {
     refreshQueueBtn,
     sessionBox,
     toastStack,
+    walletChainNotice,
     walletBox
 } from "./dom.js";
 import {
@@ -187,10 +188,7 @@ function updateWalletUI() {
     const connected = !!walletAddress;
     const chainResolved = isChainResolved(walletState.chainId);
     const supportedChain = isPublishedGameChainSupported(walletState.chainId);
-    const chainLabel = getChainLabel(walletState.chainId);
-    const unsupportedChainMessage = connected && chainResolved && !supportedChain
-        ? getSupportedGameChainMessage(walletState.chainId)
-        : "";
+    const showUnsupportedChainNotice = connected && chainResolved && !supportedChain;
 
     if (walletBox) {
         walletBox.title = walletAddress || "";
@@ -203,10 +201,6 @@ function updateWalletUI() {
                     </div>
                     <div class="wallet-address-short">${shortenWalletAddress(walletAddress)}</div>
                 </div>
-                <div class="wallet-network-line">${chainLabel}</div>
-                ${unsupportedChainMessage ? `
-                    <div class="wallet-network-warning">${unsupportedChainMessage}</div>
-                ` : ""}
             `
             : `
                 <div class="wallet-identity">
@@ -217,6 +211,16 @@ function updateWalletUI() {
                     <div class="wallet-address-short">-</div>
                 </div>
             `;
+    }
+
+    if (walletChainNotice) {
+        if (showUnsupportedChainNotice) {
+            walletChainNotice.classList.remove("hidden");
+            walletChainNotice.textContent = getSupportedGameChainMessage(walletState.chainId);
+        } else {
+            walletChainNotice.classList.add("hidden");
+            walletChainNotice.textContent = "";
+        }
     }
 
     if (sessionBox) {
