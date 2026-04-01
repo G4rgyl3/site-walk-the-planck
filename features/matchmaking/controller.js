@@ -180,6 +180,19 @@ function syncSelectionsFromDom() {
     });
 }
 
+function clearSelectionChips() {
+    [matchSizeSelector, entryFeeSelector].forEach((container) => {
+        if (!container) return;
+
+        container.querySelectorAll(".select-chip.selected").forEach((chip) => {
+            chip.classList.remove("selected");
+            chip.setAttribute("aria-pressed", "false");
+        });
+    });
+
+    setSelectedPreferences({ matchSizes: [], entryFeesWei: [] });
+}
+
 function setupMultiSelectChips(container) {
     if (!container) return;
 
@@ -321,6 +334,7 @@ async function handleLeaveQueueClick() {
     await leaveQueue(walletAddress, getSessionTokenValue(), {
         operationId: createQueueOperationId()
     });
+    clearSelectionChips();
     resetMatchmakingState();
     await updateMatchmakingUI();
 }
@@ -385,6 +399,7 @@ async function handleJoinMatchClick(maxPlayers, entryFeeWei) {
         }
 
         resetMatchmakingState();
+        clearSelectionChips();
         setIsInQueue(false);
         await updateMatchmakingUI();
 
@@ -506,6 +521,7 @@ async function syncWalletState(walletState) {
         }
 
         stopHeartbeat();
+        clearSelectionChips();
         resetMatchmakingState();
         renderPlayerMatches([]);
         await endPlayerSession(previousWalletAddress, previousSessionToken);
@@ -522,6 +538,7 @@ async function syncWalletState(walletState) {
         }
 
         stopHeartbeat();
+        clearSelectionChips();
         resetMatchmakingState();
         renderPlayerMatches([]);
         await endPlayerSession(previousWalletAddress, previousSessionToken);

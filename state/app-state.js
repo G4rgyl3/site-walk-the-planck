@@ -162,6 +162,8 @@ function setPendingActiveMatchSyncId(pendingActiveMatchSyncId) {
 
 function resetMatchmakingState() {
     state.isInQueue = false;
+    state.selectedMatchSizes = [];
+    state.selectedEntryFeesWei = [];
     state.availableMatches = [];
     state.currentGameMatch = null;
     state.currentGameMatchHydrated = false;
